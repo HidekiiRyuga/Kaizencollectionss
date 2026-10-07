@@ -48,15 +48,17 @@ export async function POST(request: Request) {
       quantity: item.quantity,
     }));
 
-    const { data: orderId, error } = await supabase.rpc(
-      "create_order",
-      {
-        p_customer_name: customerName,
-        p_phone: phone,
-        p_address: address,
-        p_items: cleanedItems,
-      }
-    );
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const { data: orderId, error } = await supabase.rpc("create_order", {
+      p_customer_name: customerName,
+      p_phone: phone,
+      p_address: address,
+      p_items: cleanedItems,
+      p_user_id: user?.id ?? null,
+    });
 
     if (error) {
       console.error("Order creation failed:", error);
