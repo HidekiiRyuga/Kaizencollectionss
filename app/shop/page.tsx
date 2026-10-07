@@ -1,8 +1,9 @@
 import ProductCard from "@/components/ProductCard";
 import Footer from "@/components/Footer";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function ShopPage() {
+  const supabase = await createClient();
   const { data: products, error } = await supabase
     .from("products")
     .select("*")
