@@ -50,6 +50,13 @@ export default function Navbar() {
           </Link>
 
           <Link
+            href="/account"
+            className="text-sm font-medium text-[#302324] hover:text-[#E1ACB0]"
+          >
+            Account
+          </Link>
+
+          <Link
             href="/cart"
             className="flex items-center gap-2 text-sm font-medium text-[#302324] hover:text-[#E1ACB0]"
           >
@@ -64,6 +71,14 @@ export default function Navbar() {
 
         {/* Mobile controls */}
         <div className="flex items-center gap-4 md:hidden">
+          
+          <Link
+          href="/account"
+          onClick={closeMenu}
+          className="text-base font-medium text-[#302324]"
+        >
+          Account
+        </Link>
           <Link
             href="/cart"
             onClick={closeMenu}

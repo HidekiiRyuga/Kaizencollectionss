@@ -12,6 +12,7 @@ export async function updateProduct(formData: FormData) {
   const category = formData.get("category");
   const description = formData.get("description");
   const image = formData.get("image");
+  const stock = formData.get("stock");
 
   console.log("UPDATE PRODUCT FORM DATA:", {
     id,
@@ -28,18 +29,22 @@ export async function updateProduct(formData: FormData) {
     typeof price !== "string" ||
     typeof category !== "string" ||
     typeof description !== "string" ||
-    typeof image !== "string"
+    typeof image !== "string" ||
+    typeof stock !== "string"
   ) {
     throw new Error("Invalid product data.");
   }
 
   const parsedPrice = Number(price);
+  const parsedStock = Number(stock);
 
   if (
-    !id ||
     !name.trim() ||
     !category.trim() ||
-    !Number.isFinite(parsedPrice)
+    !Number.isFinite(parsedPrice) ||
+    parsedPrice < 0 ||
+    !Number.isInteger(parsedStock) ||
+    parsedStock < 0
   ) {
     throw new Error("Please provide valid product information.");
   }
@@ -66,7 +71,8 @@ export async function updateProduct(formData: FormData) {
       category: category.trim(),
       description: description.trim(),
       image: image.trim() || null,
-    })
+      stock: parsedStock,
+})
     .eq("id", id)
     .select()
     .single();
@@ -156,6 +162,7 @@ export async function createProduct(formData: FormData) {
   const category = formData.get("category");
   const description = formData.get("description");
   const image = formData.get("image");
+  const stock = formData.get("stock");
 
   if (
     typeof name !== "string" ||
@@ -168,12 +175,15 @@ export async function createProduct(formData: FormData) {
   }
 
   const parsedPrice = Number(price);
+  const parsedStock = Number(stock);
 
   if (
     !name.trim() ||
     !category.trim() ||
     !Number.isFinite(parsedPrice) ||
-    parsedPrice < 0
+    parsedPrice < 0 ||
+    !Number.isInteger(parsedStock) ||
+    parsedStock < 0
   ) {
     throw new Error("Please provide valid product information.");
   }
@@ -186,6 +196,7 @@ export async function createProduct(formData: FormData) {
     category: category.trim(),
     description: description.trim(),
     image: image.trim() || null,
+    stock: parsedStock,
   });
 
   if (error) {

@@ -46,7 +46,7 @@ export default function NewProductPage() {
           />
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-3">
           <div>
             <label
               htmlFor="price"
@@ -81,6 +81,27 @@ export default function NewProductPage() {
               type="text"
               required
               placeholder="Accessories"
+              className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
+            />
+          </div>
+          
+          <div>
+            <label
+              htmlFor="stock"
+              className="text-sm font-medium text-[#302324]"
+            >
+              Stock
+            </label>
+
+            <input
+              id="stock"
+              name="stock"
+              type="number"
+              min="0"
+              step="1"
+              required
+              defaultValue="0"
+              placeholder="10"
               className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
             />
           </div>

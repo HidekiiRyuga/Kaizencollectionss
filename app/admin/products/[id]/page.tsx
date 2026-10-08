@@ -109,6 +109,26 @@ export default async function EditProductPage({
 
         <ProductImageUpload currentImage={product.image} />
 
+        <div>
+          <label
+            htmlFor="stock"
+            className="text-sm font-medium text-[#302324]"
+          >
+            Stock
+          </label>
+
+          <input
+            id="stock"
+            name="stock"
+            type="number"
+            min="0"
+            step="1"
+            required
+            defaultValue={product.stock}
+            className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
+          />
+        </div>
+
         <input type="hidden" name="id" value={product.id} />
 
         <div className="flex gap-4 pt-4">

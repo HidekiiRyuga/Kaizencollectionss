@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { cancelOrder } from "../actions";
 
 interface OrderDetailsPageProps {
   params: Promise<{ id: string }>;
@@ -88,6 +89,29 @@ export default async function OrderDetailsPage({
           </span>
         </div>
       </div>
+
+            {(order.status === "pending" || order.status === "confirmed") && (
+        <div className="mt-6 rounded-2xl border border-[#E7DDDD] bg-white p-6">
+          <h2 className="text-lg font-semibold text-[#302324]">
+            Cancel Order
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-[#7A6B6D]">
+            You can cancel this order while it has not been shipped yet.
+          </p>
+
+          <form action={cancelOrder} className="mt-5">
+            <input type="hidden" name="orderId" value={order.id} />
+
+            <button
+              type="submit"
+              className="rounded-full border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50"
+            >
+              Cancel Order
+            </button>
+          </form>
+        </div>
+      )}
 
       <div className="mt-6 rounded-2xl border border-[#E7DDDD] bg-white p-6">
         <h2 className="text-lg font-semibold text-[#302324]">
