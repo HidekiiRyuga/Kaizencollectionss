@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { updateProduct } from "../actions";
 
+import { redirect } from "next/navigation";
+
 import ProductImageUpload from "@/components/admin/ProductImageUpload";
 
 interface EditProductPageProps {
@@ -18,6 +20,20 @@ export default async function EditProductPage({
 
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    redirect("/");
+  }
 
   const { data: product, error } = await supabase
     .from("products")
@@ -108,6 +124,26 @@ export default async function EditProductPage({
         </div>
 
         <ProductImageUpload currentImage={product.image} />
+
+        <div>
+          <label
+            htmlFor="stock"
+            className="text-sm font-medium text-[#302324]"
+          >
+            Stock
+          </label>
+
+          <input
+            id="stock"
+            name="stock"
+            type="number"
+            min="0"
+            step="1"
+            required
+            defaultValue={product.stock}
+            className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
+          />
+        </div>
 
         <input type="hidden" name="id" value={product.id} />
 

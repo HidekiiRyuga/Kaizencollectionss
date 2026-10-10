@@ -9,18 +9,11 @@ import { useCart } from "@/context/CartContext";
 export default function CheckoutPage() {
   const router = useRouter();
 
-  const {
-  cart,
-  cartTotal,
-  clearCart,
-} = useCart();
+  const { cart } = useCart();
 
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   if (cart.length === 0) {
     return (
@@ -45,49 +38,21 @@ export default function CheckoutPage() {
     );
   }
 
-  const handleSubmit = async (
+  const handleProceedToPay = (
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
 
-    setError("");
-    setIsSubmitting(true);
+    sessionStorage.setItem(
+      "kaizen-checkout-details",
+      JSON.stringify({
+        customerName: customerName.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+      })
+    );
 
-    try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          customerName,
-          phone,
-          address,
-          items: cart.map((item) => ({
-            productId: item.id,
-            quantity: item.quantity,
-          })),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to place order.");
-      }
-
-      clearCart();
-
-      router.push(`/order-success?id=${data.orderId}`);
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong."
-      );
-
-      setIsSubmitting(false);
-    }
+    router.push("/checkout/payment");
   };
 
   return (
@@ -98,13 +63,17 @@ export default function CheckoutPage() {
         </p>
 
         <h1 className="mt-3 text-4xl font-bold tracking-tight text-[#302324] sm:text-5xl">
-          Complete your order
+          Delivery details
         </h1>
+
+        <p className="mt-4 max-w-2xl text-[#7A6B6D]">
+          Enter your details before proceeding to payment.
+        </p>
       </div>
 
       <div className="grid gap-14 lg:grid-cols-[1fr_380px] xl:gap-20">
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleProceedToPay}
           className="max-w-2xl space-y-7"
         >
           <div>
@@ -170,18 +139,11 @@ export default function CheckoutPage() {
             />
           </div>
 
-          {error && (
-            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
-            </p>
-          )}
-
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-full bg-[#302324] px-6 py-4 text-sm font-semibold text-white hover:bg-[#211819] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-full bg-[#302324] px-6 py-4 text-sm font-semibold text-white hover:bg-[#211819]"
           >
-            {isSubmitting ? "Placing Order..." : "Place Order"}
+            Proceed to Pay
           </button>
         </form>
 
@@ -201,7 +163,10 @@ export default function CheckoutPage() {
                 </span>
 
                 <span className="shrink-0 font-medium text-[#302324]">
-                  ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                  ₹
+                  {(item.price * item.quantity).toLocaleString(
+                    "en-IN"
+                  )}
                 </span>
               </div>
             ))}
@@ -215,7 +180,14 @@ export default function CheckoutPage() {
             </span>
 
             <span className="text-xl font-bold text-[#302324]">
-              ₹{cartTotal.toLocaleString("en-IN")}
+              ₹
+              {cart
+                .reduce(
+                  (total, item) =>
+                    total + item.price * item.quantity,
+                  0
+                )
+                .toLocaleString("en-IN")}
             </span>
           </div>
         </div>

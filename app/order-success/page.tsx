@@ -21,17 +21,29 @@ export default async function OrderSuccessPage({
           </div>
 
           <p className="mt-8 text-sm font-semibold uppercase tracking-[0.2em] text-[#E1ACB0]">
-            Order Confirmed
+            Payment Verification Pending
           </p>
 
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-[#302324] sm:text-5xl">
-            Thank you for your order!
+            We've received your order!
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-[#7A6B6D] sm:text-lg">
-            We've received your order and will get in touch with you
-            shortly with the next steps.
+            Thank you for your order. We've received your payment
+            details and will manually verify your UPI payment shortly.
           </p>
+
+          <div className="mx-auto mt-8 max-w-xl rounded-2xl bg-[#FCF9F9] px-6 py-5 text-left">
+            <p className="text-sm font-semibold text-[#302324]">
+              What happens next?
+            </p>
+
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-[#7A6B6D]">
+              <li>• We'll verify your UPI payment.</li>
+              <li>• Your order will be confirmed after verification.</li>
+              <li>• We'll process and ship your order after confirmation.</li>
+            </ul>
+          </div>
 
           {id && (
             <p className="mt-6 text-sm text-[#7A6B6D]">
@@ -44,8 +56,15 @@ export default async function OrderSuccessPage({
 
           <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
-              href="/shop"
+              href="/account/orders"
               className="rounded-full bg-[#302324] px-8 py-4 text-sm font-semibold text-white hover:bg-[#211819]"
+            >
+              View My Orders
+            </Link>
+
+            <Link
+              href="/shop"
+              className="rounded-full border border-[#E7DDDD] px-8 py-4 text-sm font-semibold text-[#302324] hover:bg-[#E7DDDD]"
             >
               Continue Shopping
             </Link>
