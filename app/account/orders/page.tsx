@@ -15,7 +15,7 @@ export default async function MyOrdersPage() {
 
   const { data: orders, error } = await supabase
     .from("orders")
-    .select("id, total, status, created_at")
+    .select("id, total, status, payment_status, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -98,11 +98,40 @@ export default async function MyOrdersPage() {
                     </p>
                   </div>
 
-                  <div>
-                    <p className="text-xs text-[#7A6B6D]">Status</p>
-                    <span className="mt-1 inline-block rounded-full bg-[#E7DDDD] px-3 py-1 text-xs font-semibold capitalize text-[#302324]">
-                      {order.status}
-                    </span>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-[#7A6B6D]">Order Status</p>
+                      <span
+                        className={`mt-1 inline-block rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                          // Order status badge
+                          order.status === "cancelled"
+                            ? "bg-[#E8D0D0] text-[#754347]"
+                            : order.status === "delivered"
+                              ? "bg-[#D1E5D3] text-[#315B38]"
+                              : "bg-[#E5D5D2] text-[#594344]"
+                        }`}
+                      >
+                        {order.status === "cancelled"
+                          ? "Cancelled"
+                          : order.status}
+                      </span>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-[#7A6B6D]">Payment</p>
+                      <span
+                        className={`mt-1 inline-block rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                          // Payment status badge
+                          order.payment_status === "paid"
+                            ? "bg-[#D1E5D3] text-[#315B38]"
+                            : order.payment_status === "rejected"
+                              ? "bg-[#E8D0D0] text-[#754347]"
+                              : "bg-[#E5D5D2] text-[#594344]"
+                        }`}
+                      >
+                        {order.payment_status}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

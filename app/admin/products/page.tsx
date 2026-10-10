@@ -4,8 +4,25 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { deleteProduct } from "./actions";
 
+import { redirect } from "next/navigation";
+
 export default async function AdminProductsPage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    redirect("/");
+  }
 
   const { data: products, error } = await supabase
     .from("products")

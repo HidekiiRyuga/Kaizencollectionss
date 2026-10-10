@@ -3,7 +3,27 @@ import Link from "next/link";
 import ProductImageUpload from "@/components/admin/ProductImageUpload";
 import { createProduct } from "../actions";
 
-export default function NewProductPage() {
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+
+
+export default async function NewProductPage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    redirect("/");
+  }
   return (
     <main className="mx-auto max-w-4xl px-8 py-16 lg:px-12 lg:py-20">
       <Link

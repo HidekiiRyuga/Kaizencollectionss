@@ -5,32 +5,56 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
+
 const VALID_STATUSES = [
   "pending",
   "confirmed",
   "shipped",
   "delivered",
-  "cancelled",
 ] as const;
 
 export async function updateOrderStatus(formData: FormData) {
   const orderId = formData.get("orderId");
   const status = formData.get("status");
 
-  if (typeof orderId !== "string" || typeof status !== "string") {
+  if (
+    typeof orderId !== "string" ||
+    !orderId ||
+    typeof status !== "string"
+  ) {
     throw new Error("Invalid order data.");
   }
 
-  if (!VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
+  if (
+    !VALID_STATUSES.includes(
+      status as (typeof VALID_STATUSES)[number]
+    ) ||
+    status === "cancelled"
+  ) {
     throw new Error("Invalid order status.");
   }
 
   const supabase = await createClient();
 
-  // Get the current payment status before changing the order status.
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("You must be logged in.");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    throw new Error("You are not authorized to update orders.");
+  }
+
   const { data: order, error: fetchError } = await supabase
     .from("orders")
-    .select("payment_status")
+    .select("status, payment_status")
     .eq("id", orderId)
     .single();
 
@@ -39,8 +63,20 @@ export async function updateOrderStatus(formData: FormData) {
     throw new Error("Order not found.");
   }
 
-  // Payment must be confirmed before the order can move
-  // to confirmed, shipped, or delivered.
+  const allowedTransitions: Record<string, string[]> = {
+    pending: ["confirmed"],
+    confirmed: ["shipped"],
+    shipped: ["delivered"],
+    delivered: [],
+    cancelled: [],
+  };
+
+  if (!allowedTransitions[order.status]?.includes(status)) {
+    throw new Error(
+      `Cannot change order status from ${order.status} to ${status}.`
+    );
+  }
+
   if (
     ["confirmed", "shipped", "delivered"].includes(status) &&
     order.payment_status !== "paid"
@@ -52,17 +88,16 @@ export async function updateOrderStatus(formData: FormData) {
 
   const { data: updatedOrder, error: updateError } = await supabase
     .from("orders")
-    .update({
-      status,
-    })
+    .update({ status })
     .eq("id", orderId)
+    .eq("status", order.status)
     .select("id, status")
-    .single();
+    .maybeSingle();
 
   if (updateError || !updatedOrder) {
     console.error("Order status update failed:", updateError);
     throw new Error(
-      "Failed to update order status. Please check your admin permissions."
+      "Failed to update order status. It may have changed already."
     );
   }
 
@@ -71,6 +106,9 @@ export async function updateOrderStatus(formData: FormData) {
 
   redirect("/admin/orders");
 }
+
+
+
 
 export async function confirmPayment(formData: FormData) {
   const orderId = formData.get("orderId");
@@ -81,44 +119,43 @@ export async function confirmPayment(formData: FormData) {
 
   const supabase = await createClient();
 
-  // Check which user the server action is actually authenticated as.
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
 
-  console.log("CONFIRM PAYMENT DEBUG");
-  console.log("Order ID:", orderId);
-  console.log("Authenticated user:", user?.id);
-  console.log("Auth error:", userError);
-
-  if (!user) {
-    throw new Error("No authenticated user found.");
+  if (userError || !user) {
+    throw new Error("You must be logged in.");
   }
 
-  const { data: updatedOrder, error: updateError } = await supabase
-    .from("orders")
-    .update({
-      payment_status: "paid",
-      paid_at: new Date().toISOString(),
-      status: "confirmed",
-    })
-    .eq("id", orderId)
-    .eq("payment_status", "pending")
-    .select("id, payment_status, paid_at, status")
-    .single();
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
 
-  console.log("Updated order:", updatedOrder);
-  console.log("Update error:", updateError);
+  if (adminError || isAdmin !== true) {
+    throw new Error("You are not authorized to confirm payments.");
+  }
 
-  if (updateError || !updatedOrder) {
+  // Confirm payment through the database function.
+  const { data: confirmed, error: confirmError } =
+    await supabase.rpc("confirm_order_payment", {
+      p_order_id: orderId,
+    });
+
+  if (confirmError) {
+    console.error("Payment confirmation failed:", confirmError);
     throw new Error(
-      "Payment confirmation failed. Check the terminal debug output."
+      "Payment confirmation failed. Please refresh and try again."
     );
   }
 
-  revalidatePath("/admin/orders", "page");
-  revalidatePath("/account/orders", "page");
+  if (confirmed !== true) {
+    throw new Error(
+      "The order cannot be confirmed. It may have been cancelled or already processed."
+    );
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/account/orders");
 
   redirect("/admin/orders");
 }

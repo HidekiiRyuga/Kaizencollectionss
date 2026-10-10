@@ -5,6 +5,28 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
+async function requireAdmin() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("You must be logged in.");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    throw new Error("You are not authorized to manage products.");
+  }
+
+  return supabase;
+}
+
 export async function updateProduct(formData: FormData) {
   const id = formData.get("id");
   const name = formData.get("name");
@@ -13,15 +35,6 @@ export async function updateProduct(formData: FormData) {
   const description = formData.get("description");
   const image = formData.get("image");
   const stock = formData.get("stock");
-
-  console.log("UPDATE PRODUCT FORM DATA:", {
-    id,
-    name,
-    price,
-    category,
-    description,
-    image,
-  });
 
   if (
     typeof id !== "string" ||
@@ -38,30 +51,24 @@ export async function updateProduct(formData: FormData) {
   const parsedPrice = Number(price);
   const parsedStock = Number(stock);
 
+  
   if (
     !name.trim() ||
+    name.trim().length > 150 ||
     !category.trim() ||
-    !Number.isFinite(parsedPrice) ||
+    category.trim().length > 100 ||
+    description.length > 5000 ||
+    image.length > 2048 ||
+    !Number.isSafeInteger(parsedPrice) ||
     parsedPrice < 0 ||
-    !Number.isInteger(parsedStock) ||
+    !Number.isSafeInteger(parsedStock) ||
     parsedStock < 0
   ) {
     throw new Error("Please provide valid product information.");
   }
 
-  const supabase = await createClient();
 
-  // Check that the server actually sees the logged-in admin.
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  console.log("CURRENT USER:", user?.email);
-
-  if (userError || !user) {
-    throw new Error("You are not authenticated.");
-  }
+  const supabase = await requireAdmin();
 
   const { data, error } = await supabase
     .from("products")
@@ -76,9 +83,6 @@ export async function updateProduct(formData: FormData) {
     .eq("id", id)
     .select()
     .single();
-
-  console.log("UPDATED PRODUCT:", data);
-  console.log("UPDATE ERROR:", error);
 
   if (error) {
     throw new Error(`Failed to update product: ${error.message}`);
@@ -103,7 +107,7 @@ export async function deleteProduct(formData: FormData) {
     throw new Error("Invalid product ID.");
   }
 
-  const supabase = await createClient();
+  const supabase = await requireAdmin();
 
   // Get the product first so we can remove its image from Storage.
   const { data: product, error: fetchError } = await supabase
@@ -177,18 +181,23 @@ export async function createProduct(formData: FormData) {
   const parsedPrice = Number(price);
   const parsedStock = Number(stock);
 
-  if (
-    !name.trim() ||
-    !category.trim() ||
-    !Number.isFinite(parsedPrice) ||
-    parsedPrice < 0 ||
-    !Number.isInteger(parsedStock) ||
-    parsedStock < 0
-  ) {
-    throw new Error("Please provide valid product information.");
-  }
+    if (
+      !name.trim() ||
+      name.trim().length > 150 ||
+      !category.trim() ||
+      category.trim().length > 100 ||
+      description.length > 5000 ||
+      image.length > 2048 ||
+      !Number.isSafeInteger(parsedPrice) ||
+      parsedPrice < 0 ||
+      !Number.isSafeInteger(parsedStock) ||
+      parsedStock < 0
+    ) {
+      throw new Error("Please provide valid product information.");
+    }
 
-  const supabase = await createClient();
+
+  const supabase = await requireAdmin();
 
   const { error } = await supabase.from("products").insert({
     name: name.trim(),

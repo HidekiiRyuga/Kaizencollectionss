@@ -31,6 +31,7 @@ export default async function OrderDetailsPage({
       address,
       total,
       status,
+      payment_status,
       created_at,
       order_items (
         id,
@@ -90,7 +91,28 @@ export default async function OrderDetailsPage({
         </div>
       </div>
 
-            {(order.status === "pending" || order.status === "confirmed") && (
+      <div className="mt-6 rounded-2xl border border-[#E7DDDD] bg-white p-6">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-lg font-semibold text-[#302324]">
+            Payment Status
+          </h2>
+
+          <span
+            className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${
+              order.payment_status === "paid"
+                ? "bg-green-50 text-green-700"
+                : order.payment_status === "rejected"
+                  ? "bg-red-50 text-red-700"
+                  : "bg-yellow-50 text-yellow-700"
+            }`}
+          >
+            {order.payment_status}
+          </span>
+        </div>
+      </div>
+
+            {(order.status === "pending" || order.status === "confirmed") &&
+              order.payment_status === "pending" && (
         <div className="mt-6 rounded-2xl border border-[#E7DDDD] bg-white p-6">
           <h2 className="text-lg font-semibold text-[#302324]">
             Cancel Order

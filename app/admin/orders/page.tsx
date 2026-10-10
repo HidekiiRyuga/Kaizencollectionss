@@ -5,9 +5,25 @@ import {
   confirmPayment,
   updateOrderStatus,
 } from "./actions";
+import { redirect } from "next/navigation";
 
 export default async function AdminOrdersPage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    redirect("/");
+  }
 
   const { data: orders, error } = await supabase
     .from("orders")
@@ -79,47 +95,74 @@ export default async function AdminOrdersPage() {
               className="rounded-2xl border border-[#E7DDDD] p-6"
             >
               {/* Header */}
-              <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[#7A6B6D]">
-                    Order
-                  </p>
+              <div className="flex flex-col items-start gap-2 sm:items-end">
+                <span
+                  className={`inline-flex rounded-full px-4 py-2 text-xs font-semibold capitalize ${
+                    order.status === "cancelled"
+                      ? "bg-red-50 text-red-700"
+                      : order.status === "delivered"
+                        ? "bg-green-50 text-green-700"
+                        : "bg-[#FCF9F9] text-[#302324]"
+                  }`}
+                >
+                  Current status: {order.status === "cancelled"
+                    ? "Cancelled by customer"
+                    : order.status}
+                </span>
 
-                  <p className="mt-1 break-all font-mono text-sm text-[#302324]">
-                    {order.id}
-                  </p>
-
-                  <p className="mt-3 text-sm text-[#7A6B6D]">
-                    {new Date(order.created_at).toLocaleString("en-IN")}
-                  </p>
-                </div>
-
-                <form action={updateOrderStatus}>
-                  <input
-                    type="hidden"
-                    name="orderId"
-                    value={order.id}
-                  />
-
-                  <select
-                    name="status"
-                    defaultValue={order.status}
-                    className="rounded-full border border-[#E7DDDD] bg-white px-4 py-2 text-xs font-semibold capitalize text-[#302324] outline-none focus:border-[#E1ACB0]"
+                {["pending", "confirmed", "shipped"].includes(order.status) && (
+                  <form
+                    action={updateOrderStatus}
+                    className="flex flex-wrap items-center gap-2"
                   >
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
+                    <input
+                      type="hidden"
+                      name="orderId"
+                      value={order.id}
+                    />
 
-                  <button
-                    type="submit"
-                    className="ml-2 text-xs font-semibold text-[#302324] hover:underline"
-                  >
-                    Update
-                  </button>
-                </form>
+                    <span className="text-xs text-[#7A6B6D]">
+                      Next step:
+                    </span>
+
+                    <select
+                      name="status"
+                      defaultValue={
+                        order.status === "pending"
+                          ? "confirmed"
+                          : order.status === "confirmed"
+                            ? "shipped"
+                            : "delivered"
+                      }
+                      className="rounded-full border border-[#E7DDDD] bg-white px-4 py-2 text-xs font-semibold capitalize text-[#302324] outline-none focus:border-[#E1ACB0]"
+                    >
+                      {order.status === "pending" && (
+                        <option value="confirmed">Confirm order</option>
+                      )}
+
+                      {order.status === "confirmed" && (
+                        <option value="shipped">Mark as shipped</option>
+                      )}
+
+                      {order.status === "shipped" && (
+                        <option value="delivered">Mark as delivered</option>
+                      )}
+                    </select>
+
+                    <button
+                      type="submit"
+                      className="rounded-full bg-[#302324] px-4 py-2 text-xs font-semibold text-white hover:bg-[#211819]"
+                    >
+                      Update
+                    </button>
+                  </form>
+                )}
+
+                {order.status === "delivered" && (
+                  <span className="text-xs text-[#7A6B6D]">
+                    No further action required
+                  </span>
+                )}
               </div>
 
               {/* Payment */}

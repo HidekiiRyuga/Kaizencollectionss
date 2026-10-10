@@ -14,6 +14,9 @@ export default async function AdminPage() {
     redirect("/admin/login");
   }
 
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
   return (
     <main className="mx-auto max-w-[1500px] px-8 py-16 lg:px-12 lg:py-20 xl:px-16">
       <div className="flex items-center justify-between gap-4">

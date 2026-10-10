@@ -1,10 +1,85 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+const MAX_REQUEST_BODY_BYTES = 16 * 1024;
+
 export async function POST(request: Request) {
   try {
+    
+    const contentLength = request.headers.get("content-length");
+
+    if (
+      contentLength !== null &&
+      (!/^\d+$/.test(contentLength) ||
+        Number(contentLength) > MAX_REQUEST_BODY_BYTES)
+    ) {
+      return NextResponse.json(
+        { error: "Request body is too large or invalid." },
+        { status: 413 }
+      );
+    }
+
+    if (!request.body) {
+      return NextResponse.json(
+        { error: "Invalid JSON request body." },
+        { status: 400 }
+      );
+    }
+
+    const reader = request.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      totalBytes += value.byteLength;
+
+      if (totalBytes > MAX_REQUEST_BODY_BYTES) {
+        await reader.cancel();
+
+        return NextResponse.json(
+          { error: "Request body is too large." },
+          { status: 413 }
+        );
+      }
+
+      chunks.push(value);
+    }
+
+    const bodyBytes = new Uint8Array(totalBytes);
+    let offset = 0;
+
+    for (const chunk of chunks) {
+      bodyBytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+
+    let body: unknown;
+
+    try {
+      body = JSON.parse(new TextDecoder().decode(bodyBytes));
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON request body." },
+        { status: 400 }
+      );
+    }
+
+
+    if (
+      body === null ||
+      typeof body !== "object" ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid order data." },
+        { status: 400 }
+      );
+    }
+
     const supabase = await createClient();
-    const body = await request.json();
 
     const {
       customerName,
@@ -12,7 +87,7 @@ export async function POST(request: Request) {
       address,
       items,
       paymentUtr,
-    } = body;
+    } = body as Record<string, unknown>;
 
     if (
       typeof customerName !== "string" ||
@@ -48,20 +123,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (
-      trimmedCustomerName.length < 2 ||
-      trimmedCustomerName.length > 100 ||
-      trimmedPhone.length < 10 ||
-      trimmedPhone.length > 20 ||
-      trimmedAddress.length < 10 ||
-      trimmedAddress.length > 500
-    ) {
-      return NextResponse.json(
-        { error: "Please provide valid customer information." },
-        { status: 400 }
-      );
-    }
-
     if (items.length === 0) {
       return NextResponse.json(
         { error: "Your cart is empty." },
@@ -69,12 +130,19 @@ export async function POST(request: Request) {
       );
     }
 
-    if (
-      trimmedPaymentUtr.length < 6 ||
-      trimmedPaymentUtr.length > 100
-) {
+    const isValidItems = items.every(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        !Array.isArray(item) &&
+        typeof item.productId === "string" &&
+        typeof item.quantity === "number" &&
+        Number.isInteger(item.quantity)
+    );
+
+    if (!isValidItems) {
       return NextResponse.json(
-        { error: "Please enter a valid UPI transaction ID / UTR." },
+        { error: "Invalid order items." },
         { status: 400 }
       );
     }

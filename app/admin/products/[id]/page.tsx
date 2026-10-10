@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { updateProduct } from "../actions";
 
+import { redirect } from "next/navigation";
+
 import ProductImageUpload from "@/components/admin/ProductImageUpload";
 
 interface EditProductPageProps {
@@ -18,6 +20,20 @@ export default async function EditProductPage({
 
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    redirect("/");
+  }
 
   const { data: product, error } = await supabase
     .from("products")
