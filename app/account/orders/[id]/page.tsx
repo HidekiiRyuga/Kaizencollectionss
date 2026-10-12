@@ -32,16 +32,17 @@ export default async function OrderDetailsPage({
       total,
       status,
       payment_status,
+      payment_utr,
       created_at,
+      cancellation_reason,
+      refund_status,
+      refund_amount,
+      refunded_at,
       order_items (
         id,
         quantity,
         price,
-        products (
-          id,
-          name,
-          image
-        )
+        products (id, name, image)
       )
     `)
     .eq("id", id)
@@ -111,8 +112,88 @@ export default async function OrderDetailsPage({
         </div>
       </div>
 
-            {(order.status === "pending" || order.status === "confirmed") &&
-              order.payment_status === "pending" && (
+      {/* Payment verification pending */}
+      {order.payment_status === "pending" && (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h3 className="font-semibold text-amber-900">
+            Payment verification pending
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-amber-800">
+            If you've completed your UPI payment, please wait while we
+            verify the transaction. Your order will be confirmed once
+            we've verified that the payment was received. You don't need
+            to pay again while verification is pending.
+          </p>
+        </div>
+      )}
+
+      {/* Payment rejected */}
+      {order.payment_status === "rejected" && (
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h3 className="font-semibold text-red-900">
+            Payment could not be verified
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-red-800">
+            Your payment could not be verified, so your order has been
+            cancelled. If you believe this is a mistake, please contact us.
+          </p>
+        </div>
+      )}
+
+      {/* Cancellation reason */}
+      {order.status === "cancelled" && order.cancellation_reason && (
+        <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+          <h3 className="font-semibold text-gray-900">
+            Cancellation details
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-gray-700">
+            {order.cancellation_reason}
+          </p>
+        </div>
+      )}
+
+      {/* Refund pending */}
+      {order.refund_status === "pending" && (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h3 className="font-semibold text-amber-900">
+            Refund pending
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-amber-800">
+            Your order has been cancelled and your refund is awaiting
+            processing. We'll update the status once the refund has been sent.
+          </p>
+          {order.refund_amount != null && (
+            <p className="mt-2 text-sm font-medium text-amber-900">
+              Refund amount: ₹{order.refund_amount}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Refund processed */}
+      {order.refund_status === "processed" && (
+        <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-5">
+          <h3 className="font-semibold text-green-900">
+            Refund processed
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-green-800">
+            Your refund has been marked as processed. Please allow time
+            for the amount to appear in your account.
+          </p>
+          {order.refund_amount != null && (
+            <p className="mt-2 text-sm font-medium text-green-900">
+              Refund amount: ₹{order.refund_amount}
+            </p>
+          )}
+          {order.refunded_at && (
+            <p className="mt-1 text-xs text-green-800">
+              Processed on:{" "}
+              {new Date(order.refunded_at).toLocaleDateString("en-IN")}
+            </p>
+          )}
+        </div>
+      )}
+            {(order.status === "pending" || order.status === "confirmed") && (
         <div className="mt-6 rounded-2xl border border-[#E7DDDD] bg-white p-6">
           <h2 className="text-lg font-semibold text-[#302324]">
             Cancel Order

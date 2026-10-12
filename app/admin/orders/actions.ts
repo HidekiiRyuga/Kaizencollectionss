@@ -81,10 +81,11 @@ export async function updateOrderStatus(formData: FormData) {
     ["confirmed", "shipped", "delivered"].includes(status) &&
     order.payment_status !== "paid"
   ) {
-    throw new Error(
-      "Payment must be confirmed before this order can be confirmed, shipped, or delivered."
+    redirect(
+      "/admin/orders?error=payment_required"
     );
   }
+
 
   const { data: updatedOrder, error: updateError } = await supabase
     .from("orders")
@@ -159,3 +160,147 @@ export async function confirmPayment(formData: FormData) {
 
   redirect("/admin/orders");
 }
+
+export async function rejectPayment(formData: FormData) {
+  const orderId = formData.get("orderId");
+
+  if (typeof orderId !== "string" || !orderId) {
+    throw new Error("Invalid order ID.");
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("You must be logged in.");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    throw new Error("You are not authorized to reject payments.");
+  }
+
+  const { data: rejected, error } = await supabase.rpc(
+    "reject_order_payment",
+    { p_order_id: orderId }
+  );
+
+  if (error) {
+    console.error("Payment rejection failed:", error);
+    throw new Error("Failed to reject payment. Please try again.");
+  }
+
+  if (rejected !== true) {
+    throw new Error(
+      "This payment cannot be rejected. The order may already have been processed."
+    );
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/account/orders");
+
+  redirect("/admin/orders");
+}
+
+
+export async function adminCancelPaidOrder(formData: FormData) {
+  const orderId = formData.get("orderId");
+
+  if (typeof orderId !== "string" || !orderId) {
+    throw new Error("Invalid order ID.");
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("You must be logged in.");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    throw new Error("You are not authorized to cancel orders.");
+  }
+
+  const { data: cancelled, error } = await supabase.rpc(
+    "admin_cancel_paid_order",
+    { p_order_id: orderId }
+  );
+
+  if (error) {
+    console.error("Order cancellation failed:", error);
+    throw new Error("Failed to cancel order. Please try again.");
+  }
+
+  if (cancelled !== true) {
+    throw new Error(
+      "This order cannot be cancelled. Only paid, pending or confirmed orders are eligible."
+    );
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/account/orders");
+
+  redirect("/admin/orders");
+}
+
+
+export async function markRefundProcessed(formData: FormData) {
+  const orderId = formData.get("orderId");
+
+  if (typeof orderId !== "string" || !orderId) {
+    throw new Error("Invalid order ID.");
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("You must be logged in.");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    throw new Error("You are not authorized to process refunds.");
+  }
+
+  const { data: processed, error } = await supabase.rpc(
+    "mark_order_refund_processed",
+    { p_order_id: orderId }
+  );
+
+  if (error) {
+    console.error("Refund update failed:", error);
+    throw new Error("Failed to update refund status. Please try again.");
+  }
+
+  if (processed !== true) {
+    throw new Error(
+      "This refund cannot be marked as processed. Check its current status."
+    );
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/account/orders");
+
+  redirect("/admin/orders");
+}
+

@@ -1,15 +1,27 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
+
 import {
   confirmPayment,
   updateOrderStatus,
+  rejectPayment,
+  adminCancelPaidOrder,
+  markRefundProcessed,
 } from "./actions";
+
 import { redirect } from "next/navigation";
 
-export default async function AdminOrdersPage() {
-  const supabase = await createClient();
 
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: pageError } = await searchParams;
+
+  const supabase = await createClient();
+  
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -27,27 +39,31 @@ export default async function AdminOrdersPage() {
 
   const { data: orders, error } = await supabase
     .from("orders")
-    .select(
-      `
-        id,
-        customer_name,
-        phone,
-        address,
-        total,
-        status,
-        payment_status,
-        payment_utr,
-        paid_at,
-        created_at,
-        order_items (
-          quantity,
-          price,
-          products (
-            name
-          )
+    
+    .select(`
+      id,
+      customer_name,
+      phone,
+      address,
+      total,
+      status,
+      payment_status,
+      payment_utr,
+      paid_at,
+      created_at,
+      cancellation_reason,
+      refund_status,
+      refund_amount,
+      refunded_at,
+      order_items (
+        quantity,
+        price,
+        products (
+          name
         )
-      `
-    )
+      )
+    `)
+
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -81,6 +97,18 @@ export default async function AdminOrdersPage() {
         <p className="mt-4 text-[#7A6B6D]">
           View and manage customer orders.
         </p>
+
+        {pageError === "payment_required" && (
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900"
+        >
+          Please verify the payment first using the{" "}
+          <strong>Verify Payment</strong> button before confirming,
+          shipping, or delivering this order.
+        </div>
+      )}
+
       </div>
 
       <div className="mt-12 space-y-6">
@@ -94,8 +122,9 @@ export default async function AdminOrdersPage() {
               key={order.id}
               className="rounded-2xl border border-[#E7DDDD] p-6"
             >
+              
               {/* Header */}
-              <div className="flex flex-col items-start gap-2 sm:items-end">
+              <div className="flex flex-col items-start gap-3 sm:items-end">
                 <span
                   className={`inline-flex rounded-full px-4 py-2 text-xs font-semibold capitalize ${
                     order.status === "cancelled"
@@ -105,11 +134,25 @@ export default async function AdminOrdersPage() {
                         : "bg-[#FCF9F9] text-[#302324]"
                   }`}
                 >
-                  Current status: {order.status === "cancelled"
-                    ? "Cancelled by customer"
+                  Current status:{" "}
+                  {order.status === "cancelled"
+                    ? "Cancelled"
                     : order.status}
                 </span>
 
+                {order.status === "cancelled" && (
+                  <div className="max-w-md rounded-xl bg-red-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-red-700">
+                      reason
+                    </p>
+                    <p className="mt-2 text-sm text-red-800">
+                      {order.cancellation_reason ||
+                        "Order cancelled by customer."}
+                    </p>
+                  </div>
+                )}
+
+                {/* Status update form — keep the select inside this form only */}
                 {["pending", "confirmed", "shipped"].includes(order.status) && (
                   <form
                     action={updateOrderStatus}
@@ -139,11 +182,9 @@ export default async function AdminOrdersPage() {
                       {order.status === "pending" && (
                         <option value="confirmed">Confirm order</option>
                       )}
-
                       {order.status === "confirmed" && (
                         <option value="shipped">Mark as shipped</option>
                       )}
-
                       {order.status === "shipped" && (
                         <option value="delivered">Mark as delivered</option>
                       )}
@@ -165,73 +206,133 @@ export default async function AdminOrdersPage() {
                 )}
               </div>
 
+
               {/* Payment */}
-              <div className="mt-6 rounded-2xl bg-[#FCF9F9] p-5">
-                <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[#7A6B6D]">
-                      Payment
-                    </p>
+              <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[#7A6B6D]">
+                    Payment
+                  </p>
 
-                    <div className="mt-2 flex items-center gap-2">
-                      <span
-                        className={`h-2.5 w-2.5 rounded-full ${
-                          order.payment_status === "paid"
-                            ? "bg-green-500"
-                            : order.payment_status === "rejected"
-                              ? "bg-red-500"
-                              : "bg-yellow-500"
-                        }`}
-                      />
+                  <div className="mt-2 flex items-center gap-2">
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${
+                        order.payment_status === "paid"
+                          ? "bg-green-500"
+                          : order.payment_status === "rejected"
+                            ? "bg-red-500"
+                            : "bg-yellow-500"
+                      }`}
+                    />
 
-                      <span className="text-sm font-semibold capitalize text-[#302324]">
-                        {order.payment_status}
-                      </span>
-                    </div>
+                    <span className="text-sm font-semibold capitalize text-[#302324]">
+                      {order.payment_status}
+                    </span>
                   </div>
+                </div>
 
-                  {order.payment_status === "pending" && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[#7A6B6D]">
+                    Customer UTR
+                  </p>
+
+                  <p className="mt-2 break-all rounded-xl border border-[#E7DDDD] bg-[#FCF9F9] px-4 py-3 font-mono text-sm text-[#302324]">
+                    {order.payment_utr || "No UTR submitted"}
+                  </p>
+                </div>
+
+
+                {/* Payment actions: independent forms */}
+                {order.payment_status === "pending" && (
+                  <div className="flex flex-wrap gap-2">
                     <form action={confirmPayment}>
                       <input
                         type="hidden"
                         name="orderId"
                         value={order.id}
                       />
-
                       <button
                         type="submit"
                         className="rounded-full bg-[#302324] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#211819]"
                       >
-                        Confirm Payment
+                        Verify Payment
                       </button>
                     </form>
-                  )}
-                </div>
 
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[#7A6B6D]">
-                      UPI Transaction ID / UTR
-                    </p>
-
-                    <p className="mt-2 break-all font-mono text-sm text-[#302324]">
-                      {order.payment_utr || "Not provided"}
-                    </p>
+                    <form action={rejectPayment}>
+                      <input
+                        type="hidden"
+                        name="orderId"
+                        value={order.id}
+                      />
+                      <button
+                        type="submit"
+                        className="rounded-full border border-red-200 bg-white px-5 py-2.5 text-xs font-semibold text-red-700 hover:bg-red-50"
+                      >
+                        Reject Payment
+                      </button>
+                    </form>
                   </div>
-
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[#7A6B6D]">
-                      Payment Confirmed
-                    </p>
-
-                    <p className="mt-2 text-sm text-[#302324]">
-                      {order.paid_at
-                        ? new Date(order.paid_at).toLocaleString("en-IN")
-                        : "Not confirmed yet"}
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
+
+
+
+              {order.status === "cancelled" && (
+                <div className="mt-6 rounded-2xl border border-[#E7DDDD] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[#7A6B6D]">
+                    Refund
+                  </p>
+
+                  <div className="mt-3 space-y-2 text-sm text-[#302324]">
+                    <p>
+                      Status:{" "}
+                      <span className="font-semibold capitalize">
+                        {order.refund_status.replace("_", " ")}
+                      </span>
+                    </p>
+
+                    {order.refund_amount !== null && (
+                      <p>
+                        Amount:{" "}
+                        <span className="font-semibold">
+                          ₹{order.refund_amount.toLocaleString("en-IN")}
+                        </span>
+                      </p>
+                    )}
+
+                    {order.refunded_at && (
+                      <p className="text-[#7A6B6D]">
+                        Processed on:{" "}
+                        {new Date(order.refunded_at).toLocaleString("en-IN")}
+                      </p>
+                    )}
+                  </div>
+
+                  {order.payment_status === "paid" &&
+                    order.refund_status === "pending" && (
+                      <form action={markRefundProcessed} className="mt-4">
+                        <input
+                          type="hidden"
+                          name="orderId"
+                          value={order.id}
+                        />
+
+                        <button
+                          type="submit"
+                          className="rounded-full bg-[#302324] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#211819]"
+                        >
+                          Mark Refund Processed
+                        </button>
+
+                        <p className="mt-2 text-xs leading-5 text-[#7A6B6D]">
+                          Use this only after you have actually sent the refund.
+                        </p>
+                      </form>
+                    )}
+                </div>
+              )}
+
 
               {/* Customer / Address / Total */}
               <div className="mt-6 grid gap-6 border-t border-[#E7DDDD] pt-6 md:grid-cols-3">
