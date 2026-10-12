@@ -97,7 +97,11 @@ export async function updateProduct(formData: FormData) {
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${id}`);
 
+  revalidatePath("/shop");
+  revalidatePath(`/products/${id}`);
+
   redirect("/admin/products");
+
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -217,4 +221,30 @@ export async function createProduct(formData: FormData) {
   revalidatePath("/admin/products");
 
   redirect("/admin/products");
+}
+export async function toggleFeatured(formData: FormData) {
+  const id = formData.get("id");
+  const featuredValue = formData.get("featured");
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    (featuredValue !== "true" && featuredValue !== "false")
+  ) {
+    throw new Error("Invalid featured product data.");
+  }
+
+  const supabase = await requireAdmin();
+
+  const { error } = await supabase
+    .from("products")
+    .update({ featured: featuredValue === "true" })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(`Failed to update featured status: ${error.message}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/products");
 }
