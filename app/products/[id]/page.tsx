@@ -60,6 +60,16 @@ export default async function ProductPage({
               ₹{product.price.toLocaleString("en-IN")}
             </p>
 
+            {product.stock > 0 ? (
+              <p className="mt-3 text-sm font-medium text-[#7A6B6D]">
+                {product.stock} in stock
+              </p>
+            ) : (
+              <p className="mt-3 text-sm font-medium text-red-600">
+                Out of stock
+              </p>
+            )}
+
             <div className="my-8 h-px bg-[#E7DDDD]" />
 
             <p className="max-w-xl text-base leading-8 text-[#7A6B6D] sm:text-lg">

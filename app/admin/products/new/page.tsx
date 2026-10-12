@@ -3,7 +3,27 @@ import Link from "next/link";
 import ProductImageUpload from "@/components/admin/ProductImageUpload";
 import { createProduct } from "../actions";
 
-export default function NewProductPage() {
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+
+
+export default async function NewProductPage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    redirect("/");
+  }
   return (
     <main className="mx-auto max-w-4xl px-8 py-16 lg:px-12 lg:py-20">
       <Link
@@ -46,7 +66,7 @@ export default function NewProductPage() {
           />
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-3">
           <div>
             <label
               htmlFor="price"
@@ -81,6 +101,27 @@ export default function NewProductPage() {
               type="text"
               required
               placeholder="Accessories"
+              className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
+            />
+          </div>
+          
+          <div>
+            <label
+              htmlFor="stock"
+              className="text-sm font-medium text-[#302324]"
+            >
+              Stock
+            </label>
+
+            <input
+              id="stock"
+              name="stock"
+              type="number"
+              min="0"
+              step="1"
+              required
+              defaultValue="0"
+              placeholder="10"
               className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
             />
           </div>

@@ -6,6 +6,7 @@ interface ProductCardProps {
   name: string;
   price: number;
   image: string;
+  stock: number;
 }
 
 export default function ProductCard({
@@ -13,6 +14,7 @@ export default function ProductCard({
   name,
   price,
   image,
+  stock,
 }: ProductCardProps) {
   return (
     <Link href={`/products/${id}`} className="group block">
@@ -32,6 +34,16 @@ export default function ProductCard({
 
         <p className="mt-2 text-base font-semibold text-[#302324]">
           ₹{price.toLocaleString("en-IN")}
+        </p>
+
+        <p
+          className={`mt-2 text-sm font-medium ${
+            stock > 0
+              ? "text-[#7A6B6D]"
+              : "text-red-600"
+          }`}
+        >
+          {stock > 0 ? `${stock} in stock` : "Out of stock"}
         </p>
       </div>
     </Link>

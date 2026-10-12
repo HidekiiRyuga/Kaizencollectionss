@@ -2,10 +2,27 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { createClient } from "@/lib/supabase/server";
-import { deleteProduct } from "./actions";
+import { deleteProduct, toggleFeatured } from "./actions";
+
+import { redirect } from "next/navigation";
 
 export default async function AdminProductsPage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    redirect("/");
+  }
 
   const { data: products, error } = await supabase
     .from("products")
@@ -104,6 +121,25 @@ export default async function AdminProductsPage() {
                       className="text-sm font-medium text-red-600 hover:underline"
                     >
                       Delete
+                    </button>
+                  </form>
+                  <form action={toggleFeatured}>
+                    <input type="hidden" name="id" value={product.id} />
+                    <input
+                      type="hidden"
+                      name="featured"
+                      value={product.featured ? "false" : "true"}
+                    />
+
+                    <button
+                      type="submit"
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        product.featured
+                          ? "bg-[#E1ACB0] text-[#302324] hover:bg-[#D6959B]"
+                          : "border border-[#E7DDDD] text-[#302324] hover:bg-[#FCF9F9]"
+                      }`}
+                    >
+                      {product.featured ? "★ Featured" : "☆ Feature"}
                     </button>
                   </form>
                 </div>
