@@ -125,15 +125,16 @@
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+  html {
+    @apply font-sans;
+    max-width: 100%;
+    overflow-x: clip;
   }
+
   body {
     @apply bg-background text-foreground;
     background: var(--brand-background);
     color: var(--brand-text);
-  }
-  html {
-    @apply font-sans;
+    min-width: 0;
   }
 }
