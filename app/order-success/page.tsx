@@ -25,11 +25,11 @@ export default async function OrderSuccessPage({
           </p>
 
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-[#302324] sm:text-5xl">
-            We've received your order!
+            We&apos;ve received your order!
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-[#7A6B6D] sm:text-lg">
-            Thank you for your order. We've received your payment
+            Thank you for your order. We&apos;ve received your payment
             details and will manually verify your UPI payment shortly.
           </p>
 
@@ -39,9 +39,9 @@ export default async function OrderSuccessPage({
             </p>
 
             <ul className="mt-3 space-y-2 text-sm leading-6 text-[#7A6B6D]">
-              <li>• We'll verify your UPI payment.</li>
+              <li>• We&apos;ll verify your UPI payment.</li>
               <li>• Your order will be confirmed after verification.</li>
-              <li>• We'll process and ship your order after confirmation.</li>
+              <li>• We&apos;ll process and ship your order after confirmation.</li>
             </ul>
           </div>
 

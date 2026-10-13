@@ -119,9 +119,9 @@ export default async function OrderDetailsPage({
             Payment verification pending
           </h3>
           <p className="mt-2 text-sm leading-6 text-amber-800">
-            If you've completed your UPI payment, please wait while we
+            If you&apos;ve completed your UPI payment, please wait while we
             verify the transaction. Your order will be confirmed once
-            we've verified that the payment was received. You don't need
+            we&apos;ve verified that the payment was received. You don&apos;t need
             to pay again while verification is pending.
           </p>
         </div>
@@ -160,7 +160,7 @@ export default async function OrderDetailsPage({
           </h3>
           <p className="mt-2 text-sm leading-6 text-amber-800">
             Your order has been cancelled and your refund is awaiting
-            processing. We'll update the status once the refund has been sent.
+            processing. We&apos;ll update the status once the refund has been sent.
           </p>
           {order.refund_amount != null && (
             <p className="mt-2 text-sm font-medium text-amber-900">

@@ -36,6 +36,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const savedCart = localStorage.getItem("kaizen-cart");
 
       if (savedCart) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCart(JSON.parse(savedCart));
       }
     } catch (error) {

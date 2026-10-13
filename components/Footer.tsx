@@ -63,7 +63,7 @@ export default function Footer() {
 
             <div className="mt-3">
               <a
-                href="#"
+                href="/contact"
                 className="inline-flex items-center gap-2 text-sm text-white/65 transition-colors hover:text-white"
               >
                 <Mail size={18} strokeWidth={1.8} />
