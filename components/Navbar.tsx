@@ -16,12 +16,12 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#E7DDDD] bg-[#FCF9F9]">
-      <nav className="relative mx-auto flex max-w-[1500px] items-center justify-between px-6 py-4 lg:px-12 xl:px-16">
+      <nav className="relative mx-auto flex w-full max-w-[1500px] min-w-0 items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-12 xl:px-16">
         {/* Logo */}
         <Link
           href="/"
           onClick={closeMenu}
-          className="text-lg font-bold tracking-tight text-[#302324] sm:text-xl"
+          className="min-w-0 truncate text-lg font-bold tracking-tight text-[#302324] sm:text-xl"
         >
           KaizenCollectionss
         </Link>
@@ -70,7 +70,7 @@ export default function Navbar() {
         </div>
 
         {/* Mobile controls */}
-        <div className="flex items-center gap-4 md:hidden">
+        <div className="flex shrink-0 items-center gap-4 md:hidden">
           
           <Link
           href="/account"
