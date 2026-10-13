@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import ProductCard from "./ProductCard";
-import FadeIn from "./FadeIn";
 
 export default async function SuggestedProducts() {
   const supabase = await createClient();

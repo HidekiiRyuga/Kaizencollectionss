@@ -16,7 +16,10 @@ export default async function AdminPage() {
 
   const { data: isAdmin, error: adminError } =
     await supabase.rpc("is_admin");
-
+    
+  if (adminError || !isAdmin) {
+    redirect("/");
+  }
   return (
     <main className="mx-auto max-w-[1500px] px-8 py-16 lg:px-12 lg:py-20 xl:px-16">
       <div className="flex items-center justify-between gap-4">
@@ -78,6 +81,24 @@ export default async function AdminPage() {
             View and manage customer orders →
           </p>
         </Link>
+        
+        <Link
+          href="/admin/contact"
+          className="rounded-2xl border border-[#E7DDDD] p-6 hover:bg-[#FCF9F9]"
+        >
+          <p className="text-sm text-[#7A6B6D]">
+            Contact Messages
+          </p>
+
+          <p className="mt-2 text-3xl font-bold text-[#302324]">
+            Inbox
+          </p>
+
+          <p className="mt-4 text-sm text-[#7A6B6D]">
+            Read customer questions and enquiries →
+          </p>
+        </Link>
+
       </div>
     </main>
   );

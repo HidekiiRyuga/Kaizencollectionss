@@ -25,7 +25,7 @@ export default function CartPage() {
             </h1>
 
             <p className="mt-5 text-base leading-7 text-[#7A6B6D] sm:text-lg">
-              Looks like you haven't added anything yet.
+              Looks like you haven&apos;t added anything yet.
             </p>
 
             <Link

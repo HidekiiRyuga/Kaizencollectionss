@@ -50,6 +50,13 @@ export default function Navbar() {
           </Link>
 
           <Link
+            href="/contact"
+            className="text-sm font-medium text-[#302324] hover:text-[#E1ACB0]"
+          >
+            Contact
+          </Link>
+
+          <Link
             href="/account"
             className="text-sm font-medium text-[#302324] hover:text-[#E1ACB0]"
           >
@@ -136,6 +143,14 @@ export default function Navbar() {
               className="text-base font-medium text-[#302324]"
             >
               About
+            </Link>
+
+            <Link
+              href="/contact"
+              onClick={closeMenu}
+              className="text-base font-medium text-[#302324]"
+            >
+              Contact
             </Link>
 
             <Link

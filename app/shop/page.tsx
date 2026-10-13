@@ -44,7 +44,7 @@ export default async function ShopPage({
           </h1>
 
           <p className="mt-5 text-[#7A6B6D]">
-            We couldn't load the products right now. Please try again later.
+            We couldn&apos;t load the products right now. Please try again later.
           </p>
         </main>
 

@@ -37,6 +37,7 @@ export default function PaymentPage() {
     }
 
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDetails(JSON.parse(savedDetails));
     } catch {
       sessionStorage.removeItem("kaizen-checkout-details");
