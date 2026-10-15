@@ -4,8 +4,10 @@ import { ArrowRight } from "lucide-react";
 export default function Hero() {
   return (
     <section className="relative overflow-hidden bg-[#E7DDDD]">
-      <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-[#E1ACB0]/40 blur-3xl" />
-      <div className="absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-white/50 blur-3xl" />
+      <div className="absolute left-0 top-10 h-72 w-72
+            max-w-full rounded-full bg-[#E1ACB0]/40 blur-3xl" />
+      <div className="absolute right-0 bottom-0 h-80 w-80
+            max-w-full rounded-full bg-white/50 blur-3xl" />
 
       <div className="relative mx-auto flex min-h-[560px] max-w-7xl items-center px-6 py-20 lg:px-8">
         <div className="max-w-2xl">
