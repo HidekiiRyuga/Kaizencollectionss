@@ -4,7 +4,7 @@ import { Mail } from "lucide-react";
 export default function Footer() {
   return (
     <footer className="bg-[#302324] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8 lg:py-10">
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <div className="grid gap-8 sm:grid-cols-3 lg:gap-6">
           <div>
             <Link
