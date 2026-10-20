@@ -1,12 +1,9 @@
 
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { updateProduct } from "../actions";
-
-import { redirect } from "next/navigation";
-
 import ProductImageUpload from "@/components/admin/ProductImageUpload";
 
 interface EditProductPageProps {
@@ -70,80 +67,128 @@ export default async function EditProductPage({
 
       <form action={updateProduct} className="mt-10 space-y-6">
         <div>
-          <label className="text-sm font-medium text-[#302324]">
+          <label
+            htmlFor="name"
+            className="text-sm font-medium text-[#302324]"
+          >
             Product Name
           </label>
-            
+
           <input
+            id="name"
             type="text"
             name="name"
+            required
+            maxLength={150}
             defaultValue={product.name}
             className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 outline-none focus:border-[#E1ACB0]"
-            />
+          />
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-[#302324]">
-              Price
+            <label
+              htmlFor="price"
+              className="text-sm font-medium text-[#302324]"
+            >
+              Selling Price (₹)
             </label>
 
             <input
+              id="price"
               type="number"
               name="price"
+              min="0"
+              step="1"
+              required
               defaultValue={product.price}
               className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 outline-none focus:border-[#E1ACB0]"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-[#302324]">
+            <label
+              htmlFor="mrp"
+              className="text-sm font-medium text-[#302324]"
+            >
+              MRP (₹)
+            </label>
+
+            <input
+              id="mrp"
+              type="number"
+              name="mrp"
+              min="0"
+              step="1"
+              required
+              defaultValue={product.mrp}
+              className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 outline-none focus:border-[#E1ACB0]"
+            />
+
+            <p className="mt-1 text-xs text-[#7A6B6D]">
+              MRP must be equal to or higher than the selling price.
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="category"
+              className="text-sm font-medium text-[#302324]"
+            >
               Category
             </label>
 
             <input
+              id="category"
               type="text"
               name="category"
+              required
+              maxLength={100}
               defaultValue={product.category}
+              className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 outline-none focus:border-[#E1ACB0]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="stock"
+              className="text-sm font-medium text-[#302324]"
+            >
+              Stock
+            </label>
+
+            <input
+              id="stock"
+              type="number"
+              name="stock"
+              min="0"
+              step="1"
+              required
+              defaultValue={product.stock}
               className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 outline-none focus:border-[#E1ACB0]"
             />
           </div>
         </div>
 
         <div>
-          <label className="text-sm font-medium text-[#302324]">
+          <label
+            htmlFor="description"
+            className="text-sm font-medium text-[#302324]"
+          >
             Description
           </label>
 
           <textarea
+            id="description"
             name="description"
-            defaultValue={product.description ?? ""}
             rows={6}
-            className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 outline-none focus:border-[#E1ACB0]"
+            maxLength={5000}
+            defaultValue={product.description ?? ""}
+            className="mt-2 w-full resize-none rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 outline-none focus:border-[#E1ACB0]"
           />
         </div>
 
         <ProductImageUpload currentImage={product.image} />
-
-        <div>
-          <label
-            htmlFor="stock"
-            className="text-sm font-medium text-[#302324]"
-          >
-            Stock
-          </label>
-
-          <input
-            id="stock"
-            name="stock"
-            type="number"
-            min="0"
-            step="1"
-            required
-            defaultValue={product.stock}
-            className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
-          />
-        </div>
 
         <input type="hidden" name="id" value={product.id} />
 
