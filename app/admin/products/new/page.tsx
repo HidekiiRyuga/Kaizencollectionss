@@ -1,11 +1,10 @@
+
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import ProductImageUpload from "@/components/admin/ProductImageUpload";
 import { createProduct } from "../actions";
-
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-
 
 export default async function NewProductPage() {
   const supabase = await createClient();
@@ -24,6 +23,7 @@ export default async function NewProductPage() {
   if (adminError || isAdmin !== true) {
     redirect("/");
   }
+
   return (
     <main className="mx-auto max-w-4xl px-8 py-16 lg:px-12 lg:py-20">
       <Link
@@ -61,18 +61,19 @@ export default async function NewProductPage() {
             name="name"
             type="text"
             required
+            maxLength={150}
             placeholder="Anime Keychain"
             className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
           />
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2">
           <div>
             <label
               htmlFor="price"
               className="text-sm font-medium text-[#302324]"
             >
-              Price
+              Selling Price (₹)
             </label>
 
             <input
@@ -82,9 +83,33 @@ export default async function NewProductPage() {
               min="0"
               step="1"
               required
-              placeholder="299"
+              placeholder="349"
               className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="mrp"
+              className="text-sm font-medium text-[#302324]"
+            >
+              MRP (₹)
+            </label>
+
+            <input
+              id="mrp"
+              name="mrp"
+              type="number"
+              min="0"
+              step="1"
+              required
+              placeholder="499"
+              className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
+            />
+
+            <p className="mt-1 text-xs text-[#7A6B6D]">
+              MRP must be equal to or higher than the selling price.
+            </p>
           </div>
 
           <div>
@@ -100,11 +125,12 @@ export default async function NewProductPage() {
               name="category"
               type="text"
               required
+              maxLength={100}
               placeholder="Accessories"
               className="mt-2 w-full rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
             />
           </div>
-          
+
           <div>
             <label
               htmlFor="stock"
@@ -139,6 +165,7 @@ export default async function NewProductPage() {
             id="description"
             name="description"
             rows={6}
+            maxLength={5000}
             placeholder="Describe the product..."
             className="mt-2 w-full resize-none rounded-xl border border-[#E7DDDD] bg-white px-4 py-3 text-[#302324] outline-none focus:border-[#E1ACB0]"
           />

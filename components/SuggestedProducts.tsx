@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -8,7 +9,7 @@ export default async function SuggestedProducts() {
 
   const { data: products, error } = await supabase
     .from("products")
-    .select("id, name, price, image, stock")
+    .select("id, name, price, mrp, image, stock")
     .eq("featured", true)
     .order("created_at", { ascending: false });
 
@@ -52,6 +53,7 @@ export default async function SuggestedProducts() {
                 id={product.id}
                 name={product.name}
                 price={product.price}
+                mrp={product.mrp}
                 image={product.image ?? "/products/placeholder.jpg"}
                 stock={product.stock}
               />

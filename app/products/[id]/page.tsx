@@ -1,3 +1,4 @@
+
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -27,6 +28,14 @@ export default async function ProductPage({
     notFound();
   }
 
+  const mrp = product.mrp;
+  const price = product.price;
+  const hasDiscount = mrp > price;
+
+  const discountPercentage = hasDiscount
+    ? Math.round(((mrp - price) / mrp) * 100)
+    : 0;
+
   return (
     <>
       <main className="mx-auto max-w-[1500px] px-8 py-16 lg:px-12 lg:py-20 xl:px-16">
@@ -45,6 +54,12 @@ export default async function ProductPage({
               fill
               className="object-cover"
             />
+
+            {hasDiscount && (
+              <span className="absolute left-4 top-4 rounded-full bg-[#302324] px-4 py-2 text-sm font-semibold text-white">
+                {discountPercentage}% OFF
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col justify-center">
@@ -56,9 +71,23 @@ export default async function ProductPage({
               {product.name}
             </h1>
 
-            <p className="mt-6 text-2xl font-semibold text-[#302324] sm:text-3xl">
-              ₹{product.price.toLocaleString("en-IN")}
-            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <span className="text-2xl font-semibold text-[#302324] sm:text-3xl">
+                ₹{price.toLocaleString("en-IN")}
+              </span>
+
+              {hasDiscount && (
+                <span className="text-lg text-[#7A6B6D] line-through">
+                  ₹{mrp.toLocaleString("en-IN")}
+                </span>
+              )}
+            </div>
+
+            {hasDiscount && (
+              <p className="mt-2 text-sm font-medium text-[#7A6B6D]">
+                You save ₹{(mrp - price).toLocaleString("en-IN")}
+              </p>
+            )}
 
             {product.stock > 0 ? (
               <p className="mt-3 text-sm font-medium text-[#7A6B6D]">
