@@ -93,7 +93,7 @@ const policies = [
   },
 ];
 
-const supportEmail = "akiyamashinichiiiii@gmail.com";
+const supportEmail = "kaizencollectionss@gmail.com";
 
 export default function ReturnsRefundsPage() {
   return (
