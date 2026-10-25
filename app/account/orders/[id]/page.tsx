@@ -38,6 +38,10 @@ export default async function OrderDetailsPage({
       refund_status,
       refund_amount,
       refunded_at,
+      status,
+      shipping_courier,
+      tracking_number,
+      payment_status,
       order_items (
         id,
         quantity,
@@ -91,6 +95,78 @@ export default async function OrderDetailsPage({
           </span>
         </div>
       </div>
+      
+      {/* Shipment Tracking */}
+      <div className="mt-6 rounded-2xl border border-[#E7DDDD] bg-white p-6">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-lg font-semibold text-[#302324]">
+            Shipment Tracking
+          </h2>
+
+          <span
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize ${
+              order.status === "delivered"
+                ? "bg-green-50 text-green-700"
+                : order.status === "shipped"
+                  ? "bg-blue-50 text-blue-700"
+                  : "bg-[#FFF1F2] text-[#7A6B6D]"
+            }`}
+          >
+            {order.status}
+          </span>
+        </div>
+
+        {order.status === "shipped" || order.status === "delivered" ? (
+          order.shipping_courier === "delhivery" &&
+          order.tracking_number ? (
+            <div className="mt-4">
+              <p className="text-sm text-[#7A6B6D]">
+                Your order is being handled by Delhivery.
+              </p>
+
+              <div className="mt-4 rounded-xl bg-[#FCF9F9] p-4">
+                <p className="text-xs font-medium uppercase tracking-wider text-[#7A6B6D]">
+                  Tracking / AWB Number
+                </p>
+
+                <p className="mt-2 break-all font-semibold text-[#302324]">
+                  {order.tracking_number}
+                </p>
+              </div>
+
+              <a
+                href="https://www.delhivery.com/tracking"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-[#302324] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#493638]"
+              >
+                Track on Delhivery
+                <span aria-hidden="true">↗</span>
+              </a>
+
+              <p className="mt-3 text-xs leading-5 text-[#7A6B6D]">
+                Open Delhivery&apos;s website and enter the AWB number above
+                to check your shipment&apos;s latest tracking updates.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-[#7A6B6D]">
+              Your order has been marked as {order.status}, but tracking
+              details are not available yet. Please check again later.
+            </p>
+          )
+        ) : order.status === "cancelled" ? (
+          <p className="mt-3 text-sm leading-6 text-[#7A6B6D]">
+            This order was cancelled, so shipment tracking is not available.
+          </p>
+        ) : (
+          <p className="mt-3 text-sm leading-6 text-[#7A6B6D]">
+            Your order hasn&apos;t shipped yet. Once it is shipped and the
+            tracking details are added, you&apos;ll find your AWB number here.
+          </p>
+        )}
+      </div>
+
 
       <div className="mt-6 rounded-2xl border border-[#E7DDDD] bg-white p-6">
         <div className="flex items-center justify-between gap-4">

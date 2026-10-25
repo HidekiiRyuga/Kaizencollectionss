@@ -41,18 +41,19 @@ export default function Footer() {
               </Link>
 
               <Link
+                href="/track-order"
+                className="text-sm text-white/65 transition-colors hover:text-white"
+              >
+                Track Order
+              </Link>
+
+              <Link
                 href="/about"
                 className="text-sm text-white/65 transition-colors hover:text-white"
               >
                 About
               </Link>
 
-              <Link
-                href="/contact"
-                className="text-sm text-white/65 transition-colors hover:text-white"
-              >
-                Contact
-              </Link>
             </div>
           </div>
 

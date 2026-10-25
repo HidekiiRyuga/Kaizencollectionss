@@ -81,7 +81,24 @@ export default async function AdminPage() {
             View and manage customer orders →
           </p>
         </Link>
-        
+
+        <Link
+          href="/admin/delivery"
+          className="rounded-2xl border border-[#E7DDDD] p-6 hover:bg-[#FCF9F9]"
+        >
+          <p className="text-sm text-[#7A6B6D]">
+            Delivery Settings
+          </p>
+
+          <p className="mt-2 text-3xl font-bold text-[#302324]">
+            Configure
+          </p>
+
+          <p className="mt-4 text-sm text-[#7A6B6D]">
+            Toggle free delivery, change the fee, and edit your promotion →
+          </p>
+        </Link>
+
         <Link
           href="/admin/contact"
           className="rounded-2xl border border-[#E7DDDD] p-6 hover:bg-[#FCF9F9]"
