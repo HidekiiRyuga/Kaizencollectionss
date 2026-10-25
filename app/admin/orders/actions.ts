@@ -304,3 +304,88 @@ export async function markRefundProcessed(formData: FormData) {
   redirect("/admin/orders");
 }
 
+export async function updateOrderTracking(formData: FormData) {
+  const orderId = formData.get("orderId");
+  const courier = formData.get("shipping_courier");
+  const trackingNumber = formData.get("tracking_number");
+
+  if (
+    typeof orderId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId) ||
+    typeof courier !== "string" ||
+    typeof trackingNumber !== "string"
+  ) {
+    throw new Error("Invalid shipment details.");
+  }
+
+  const normalizedCourier = courier.trim().toLowerCase();
+  const normalizedTrackingNumber = trackingNumber.trim();
+
+  const allowedCouriers = ["delhivery"];
+
+  if (!allowedCouriers.includes(normalizedCourier)) {
+    throw new Error("Please select a supported courier.");
+  }
+
+  if (
+    normalizedTrackingNumber.length < 5 ||
+    normalizedTrackingNumber.length > 100 ||
+    !/^[a-zA-Z0-9-]+$/.test(normalizedTrackingNumber)
+  ) {
+    throw new Error("Please enter a valid tracking number.");
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("You must be logged in.");
+  }
+
+  const { data: isAdmin, error: adminError } =
+    await supabase.rpc("is_admin");
+
+  if (adminError || isAdmin !== true) {
+    throw new Error("You are not authorized to update shipment tracking.");
+  }
+
+  const { data: order, error: fetchError } = await supabase
+    .from("orders")
+    .select("id, status")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (fetchError || !order) {
+    console.error("Failed to load order for tracking:", fetchError);
+    throw new Error("Order not found.");
+  }
+
+  if (!["shipped", "delivered"].includes(order.status)) {
+    throw new Error(
+      "Mark the order as shipped before adding its tracking number."
+    );
+  }
+
+  const { error: updateError } = await supabase
+    .from("orders")
+    .update({
+      shipping_courier: normalizedCourier,
+      tracking_number: normalizedTrackingNumber,
+    })
+    .eq("id", orderId);
+
+  if (updateError) {
+    console.error("Shipment tracking update failed:", updateError);
+    throw new Error("Failed to save tracking details. Please try again.");
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/track-order");
+  revalidatePath("/account/orders");
+
+  redirect("/admin/orders");
+}

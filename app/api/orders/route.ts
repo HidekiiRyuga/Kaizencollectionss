@@ -87,7 +87,27 @@ export async function POST(request: Request) {
       address,
       items,
       paymentUtr,
+      expectedTotal,
+      expectedSubtotal,
+      expectedDeliveryFee,
     } = body as Record<string, unknown>;
+
+    if (
+      typeof expectedTotal !== "number" ||
+      !Number.isSafeInteger(expectedTotal) ||
+      expectedTotal <= 0 ||
+      typeof expectedSubtotal !== "number" ||
+      !Number.isSafeInteger(expectedSubtotal) ||
+      expectedSubtotal <= 0 ||
+      typeof expectedDeliveryFee !== "number" ||
+      !Number.isSafeInteger(expectedDeliveryFee) ||
+      expectedDeliveryFee < 0
+    ) {
+      return NextResponse.json(
+        { error: "Invalid order amount. Please refresh checkout." },
+        { status: 400 }
+      );
+    }
 
     if (
       typeof customerName !== "string" ||
@@ -151,6 +171,82 @@ export async function POST(request: Request) {
       product_id: item.productId,
       quantity: item.quantity,
     }));
+
+    // Verify the displayed amounts against current database values.
+    const productIds = cleanedItems.map((item) => item.product_id);
+
+    const [
+      { data: currentProducts, error: priceError },
+      { data: deliverySettings, error: deliveryError },
+    ] = await Promise.all([
+      supabase
+        .from("products")
+        .select("id, price")
+        .in("id", productIds),
+
+      supabase
+        .from("delivery_settings")
+        .select("free_delivery_enabled, delivery_fee")
+        .eq("id", 1)
+        .maybeSingle(),
+    ]);
+
+    if (priceError || !currentProducts) {
+      console.error("Order price verification failed:", priceError);
+
+      return NextResponse.json(
+        { error: "Could not verify current prices. Please try again." },
+        { status: 500 }
+      );
+    }
+
+    if (deliveryError || !deliverySettings) {
+      console.error("Order delivery verification failed:", deliveryError);
+
+      return NextResponse.json(
+        { error: "Could not verify delivery charges. Please try again." },
+        { status: 500 }
+      );
+    }
+
+    if (currentProducts.length !== cleanedItems.length) {
+      return NextResponse.json(
+        { error: "A product is no longer available. Please refresh your cart." },
+        { status: 409 }
+      );
+    }
+
+    const currentSubtotal = cleanedItems.reduce((sum, item) => {
+      const product = currentProducts.find(
+        (candidate) => candidate.id === item.product_id
+      );
+
+      if (!product || !Number.isSafeInteger(product.price)) {
+        throw new Error("Could not verify a product price.");
+      }
+
+      return sum + product.price * item.quantity;
+    }, 0);
+
+    const currentDeliveryFee = deliverySettings.free_delivery_enabled
+      ? 0
+      : deliverySettings.delivery_fee;
+
+    const currentTotal = currentSubtotal + currentDeliveryFee;
+
+    if (
+      currentSubtotal !== expectedSubtotal ||
+      currentDeliveryFee !== expectedDeliveryFee ||
+      currentTotal !== expectedTotal
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Your order total has changed since checkout. Please return to checkout, refresh the summary, and verify the amount before making your payment.",
+        },
+        { status: 409 }
+      );
+    }
 
     const {
       data: { user },
