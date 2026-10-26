@@ -31,5 +31,10 @@ export default async function CheckoutPage() {
     }
   }
 
-  return <CheckoutForm initialProfile={initialProfile} />;
+  return (
+  <CheckoutForm
+    initialProfile={initialProfile}
+    initialEmail={user?.email ?? ""}
+  />
+);
 }
