@@ -45,6 +45,7 @@ export default function CartPage() {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState("");
 
+  
   const loadSummary = useCallback(async () => {
     if (cart.length === 0) {
       setSummary(null);
@@ -52,10 +53,6 @@ export default function CartPage() {
       setSummaryLoading(false);
       return;
     }
-
-    setSummaryLoading(true);
-    setSummaryError("");
-    setSummary(null);
 
     try {
       const response = await fetch("/api/checkout/summary", {
@@ -81,19 +78,47 @@ export default function CartPage() {
       }
 
       setSummary(data as CartSummary);
+      setSummaryError("");
     } catch (error) {
       setSummaryError(
         error instanceof Error
           ? error.message
           : "Could not load the latest cart prices."
       );
+      setSummary(null);
     } finally {
       setSummaryLoading(false);
     }
   }, [cart]);
 
   useEffect(() => {
-    void loadSummary();
+    if (cart.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const load = async () => {
+      // Defer the request out of the synchronous effect body.
+      await Promise.resolve();
+
+      if (cancelled) {
+        return;
+      }
+
+      await loadSummary();
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cart.length, loadSummary]);
+
+
+  useEffect(() => {
+    void Promise.resolve().then(() => loadSummary());
   }, [loadSummary]);
 
   if (cart.length === 0) {

@@ -62,25 +62,48 @@ export default function PaymentPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const savedDetails = sessionStorage.getItem(
-      "kaizen-checkout-details"
-    );
+    let cancelled = false;
 
-    if (!savedDetails) {
-      router.replace("/checkout");
-      return;
-    }
+    const checkDetails = async () => {
+      const savedDetails = sessionStorage.getItem(
+        "kaizen-checkout-details"
+      );
 
-    try {
-      setDetails(JSON.parse(savedDetails) as CheckoutDetails);
+      if (!savedDetails) {
+        router.replace("/checkout");
+        return;
+      }
+
+      let parsedDetails: CheckoutDetails;
+
+      try {
+        parsedDetails = JSON.parse(savedDetails) as CheckoutDetails;
+      } catch {
+        sessionStorage.removeItem("kaizen-checkout-details");
+        router.replace("/checkout");
+        return;
+      }
+
+      // Defer state updates until after the effect's synchronous phase.
+      await Promise.resolve();
+
+      if (cancelled) return;
+
+      setDetails(parsedDetails);
       setDetailsChecked(true);
-    } catch {
-      sessionStorage.removeItem("kaizen-checkout-details");
-      router.replace("/checkout");
-    }
+    };
+
+    void checkDetails();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const loadSummary = useCallback(async () => {
+    // Let the current synchronous render/effect phase finish first.
+    await Promise.resolve();
+
     if (cart.length === 0) {
       setSummary(null);
       setSummaryError("");
@@ -128,7 +151,11 @@ export default function PaymentPage() {
   }, [cart]);
 
   useEffect(() => {
-    void loadSummary();
+    const timeoutId = setTimeout(() => {
+      void loadSummary();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [loadSummary, retryCount]);
 
   if (cart.length === 0) {

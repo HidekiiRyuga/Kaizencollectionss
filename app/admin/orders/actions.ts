@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  sendOrderStatusEmail,
+  type OrderEmailStatus,
+} from "@/lib/email/order-emails";
 
 
 const VALID_STATUSES = [
@@ -54,7 +58,9 @@ export async function updateOrderStatus(formData: FormData) {
 
   const { data: order, error: fetchError } = await supabase
     .from("orders")
-    .select("status, payment_status")
+    .select(
+      "status, payment_status, customer_email, customer_name, total, shipping_courier, tracking_number"
+    )
     .eq("id", orderId)
     .single();
 
@@ -102,14 +108,27 @@ export async function updateOrderStatus(formData: FormData) {
     );
   }
 
+  if (order.customer_email) {
+    await sendOrderStatusEmail(status as OrderEmailStatus, {
+      orderId,
+      customerEmail: order.customer_email,
+      customerName: order.customer_name ?? "there",
+      total: order.total,
+      courier: order.shipping_courier,
+      trackingNumber: order.tracking_number,
+    });
+  } else {
+    console.warn(
+      "Status email skipped: order has no customer email.",
+      orderId
+    );
+  }
+
   revalidatePath("/admin/orders", "page");
   revalidatePath("/account/orders", "page");
 
   redirect("/admin/orders");
 }
-
-
-
 
 export async function confirmPayment(formData: FormData) {
   const orderId = formData.get("orderId");
@@ -155,10 +174,37 @@ export async function confirmPayment(formData: FormData) {
     );
   }
 
-  revalidatePath("/admin/orders");
-  revalidatePath("/account/orders");
+  // Fetch the order after the database confirms payment and status.
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select(
+      "id, status, customer_email, customer_name, total, shipping_courier, tracking_number"
+    )
+    .eq("id", orderId)
+    .single();
 
-  redirect("/admin/orders");
+  if (orderError || !order) {
+    console.error("Payment confirmed, but order details could not be loaded:", orderError);
+  } else if (order.status === "confirmed" && order.customer_email) {
+    await sendOrderStatusEmail("confirmed", {
+      orderId: order.id,
+      customerEmail: order.customer_email,
+      customerName: order.customer_name ?? "there",
+      total: order.total,
+      courier: order.shipping_courier,
+      trackingNumber: order.tracking_number,
+    });
+  } else {
+    console.warn(
+      "Confirmation email skipped: order is not confirmed or has no customer email.",
+      orderId
+    );
+  }
+
+revalidatePath("/admin/orders");
+revalidatePath("/account/orders");
+
+redirect("/admin/orders");
 }
 
 export async function rejectPayment(formData: FormData) {
