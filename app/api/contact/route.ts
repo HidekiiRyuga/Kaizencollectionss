@@ -1,10 +1,20 @@
-
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
 const MAX_BODY_BYTES = 12 * 1024;
+
+type EnquiryType = "general" | "bug";
+
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -55,14 +65,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    const { name, email, orderId, subject, message } = data;
+    const {
+      name,
+      email,
+      orderId,
+      subject,
+      message,
+      enquiryType: rawEnquiryType,
+      affectedPage,
+      stepsToReproduce,
+    } = data;
+
+    const enquiryType: EnquiryType =
+      rawEnquiryType === undefined ? "general" : (rawEnquiryType as EnquiryType);
 
     if (
       typeof name !== "string" ||
       typeof email !== "string" ||
       typeof orderId !== "string" ||
       typeof subject !== "string" ||
-      typeof message !== "string"
+      typeof message !== "string" ||
+      (enquiryType !== "general" && enquiryType !== "bug") ||
+      (affectedPage !== undefined && typeof affectedPage !== "string") ||
+      (stepsToReproduce !== undefined &&
+        typeof stepsToReproduce !== "string")
     ) {
       return NextResponse.json(
         { error: "Please complete all required fields." },
@@ -76,6 +102,12 @@ export async function POST(request: Request) {
       orderId: orderId.trim(),
       subject: subject.trim(),
       message: message.trim(),
+      affectedPage:
+        typeof affectedPage === "string" ? affectedPage.trim() : "",
+      stepsToReproduce:
+        typeof stepsToReproduce === "string"
+          ? stepsToReproduce.trim()
+          : "",
     };
 
     if (
@@ -87,7 +119,9 @@ export async function POST(request: Request) {
       clean.subject.length < 3 ||
       clean.subject.length > 150 ||
       clean.message.length < 10 ||
-      clean.message.length > 5000
+      clean.message.length > 5000 ||
+      clean.affectedPage.length > 1000 ||
+      clean.stepsToReproduce.length > 2000
     ) {
       return NextResponse.json(
         { error: "Please check your details and try again." },
@@ -95,17 +129,47 @@ export async function POST(request: Request) {
       );
     }
 
+    if (
+      enquiryType === "bug" &&
+      (!clean.affectedPage ||
+        !isValidHttpUrl(clean.affectedPage) ||
+        clean.stepsToReproduce.length < 10)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Please provide a valid page URL and at least 10 characters describing how to reproduce the issue.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const savedSubject =
+      enquiryType === "bug" ? `[BUG REPORT] ${clean.subject}` : clean.subject;
+
+    const savedMessage =
+      enquiryType === "bug"
+        ? [
+            "Type: Bug report",
+            `Affected page: ${clean.affectedPage}`,
+            "",
+            "Steps to reproduce:",
+            clean.stepsToReproduce,
+            "",
+            "Additional details:",
+            clean.message,
+          ].join("\n")
+        : clean.message;
+
     const supabase = await createClient();
 
-    const { error } = await supabase
-      .from("contact_messages")
-      .insert({
-        name: clean.name,
-        email: clean.email,
-        order_id: clean.orderId || null,
-        subject: clean.subject,
-        message: clean.message,
-      });
+    const { error } = await supabase.from("contact_messages").insert({
+      name: clean.name,
+      email: clean.email,
+      order_id: enquiryType === "general" ? clean.orderId || null : null,
+      subject: savedSubject,
+      message: savedMessage,
+    });
 
     if (error) {
       console.error("Contact message save failed:", error);
@@ -117,7 +181,13 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { success: true, message: "Your message has been received." },
+      {
+        success: true,
+        message:
+          enquiryType === "bug"
+            ? "Your bug report has been received."
+            : "Your message has been received.",
+      },
       { status: 201 }
     );
   } catch (error) {

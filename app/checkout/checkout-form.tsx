@@ -241,7 +241,7 @@ export default function CheckoutForm({
             />
 
             <p className="mt-2 text-sm font-medium leading-5 text-[#625456]">
-              We'll send your order confirmation and delivery updates here.
+              We&apos;ll send your order confirmation and delivery updates here.
             </p>
           </div>
 

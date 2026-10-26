@@ -1,7 +1,7 @@
-
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { Bug, Mail } from "lucide-react";
 
 export default async function AdminContactPage() {
   const supabase = await createClient();
@@ -45,11 +45,13 @@ export default async function AdminContactPage() {
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#B98289]">
           Admin
         </p>
+
         <h1 className="mt-3 text-4xl font-bold tracking-tight text-[#302324] sm:text-5xl">
           Contact Messages
         </h1>
+
         <p className="mt-4 text-[#7A6B6D]">
-          Read customer enquiries submitted through your website.
+          Read customer enquiries and bug reports submitted through your website.
         </p>
       </div>
 
@@ -63,7 +65,7 @@ export default async function AdminContactPage() {
             No messages yet
           </h2>
           <p className="mt-2 text-sm text-[#7A6B6D]">
-            New contact form submissions will appear here.
+            New contact form submissions and bug reports will appear here.
           </p>
         </div>
       ) : (
@@ -72,52 +74,78 @@ export default async function AdminContactPage() {
             {items.length} {items.length === 1 ? "message" : "messages"}
           </p>
 
-          {items.map((item) => (
-            <article
-              key={item.id}
-              className="rounded-2xl border border-[#E7DDDD] bg-white p-5 sm:p-7"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-[#302324]">
-                    {item.subject}
-                  </h2>
-                  <p className="mt-1 text-sm text-[#7A6B6D]">
-                    From {item.name} ·{" "}
-                    <a
-                      href={`mailto:${item.email}`}
-                      className="underline underline-offset-4 hover:text-[#302324]"
-                    >
-                      {item.email}
-                    </a>
-                  </p>
+          {items.map((item) => {
+            const isBugReport = item.subject.startsWith("[BUG REPORT]");
+            const displaySubject = isBugReport
+              ? item.subject.replace(/^\[BUG REPORT\]\s*/, "")
+              : item.subject;
+
+            return (
+              <article
+                key={item.id}
+                className={`rounded-2xl border bg-white p-5 sm:p-7 ${
+                  isBugReport
+                    ? "border-[#E1ACB0]"
+                    : "border-[#E7DDDD]"
+                }`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      {isBugReport && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFE5EC] px-3 py-1 text-xs font-semibold text-[#8B304C]">
+                          <Bug size={13} />
+                          Bug report
+                        </span>
+                      )}
+
+                      <span className="rounded-full bg-[#F5F0F0] px-3 py-1 text-xs font-semibold capitalize text-[#5E5052]">
+                        {item.status}
+                      </span>
+                    </div>
+
+                    <h2 className="break-words text-lg font-semibold text-[#302324]">
+                      {displaySubject}
+                    </h2>
+
+                    <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#7A6B6D]">
+                      <Mail size={14} />
+                      <span>From {item.name}</span>
+                      <span aria-hidden="true">·</span>
+                      <a
+                        href={`mailto:${item.email}`}
+                        className="break-all underline underline-offset-4 hover:text-[#302324]"
+                      >
+                        {item.email}
+                      </a>
+                    </p>
+                  </div>
                 </div>
 
-                <span className="rounded-full bg-[#FFE5EC] px-3 py-1 text-xs font-semibold capitalize text-[#302324]">
-                  {item.status}
-                </span>
-              </div>
-
-              <p className="mt-5 whitespace-pre-wrap break-words text-sm leading-7 text-[#5E5052]">
-                {item.message}
-              </p>
-
-              {item.order_id && (
-                <p className="mt-4 text-sm text-[#7A6B6D]">
-                  Order ID: <span className="font-medium text-[#302324]">{item.order_id}</span>
+                <p className="mt-5 whitespace-pre-wrap break-words text-sm leading-7 text-[#5E5052]">
+                  {item.message}
                 </p>
-              )}
 
-              <p className="mt-5 border-t border-[#E7DDDD] pt-4 text-xs text-[#7A6B6D]">
-                Received{" "}
-                {new Date(item.created_at).toLocaleString("en-IN", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                  timeZone: "Asia/Kolkata",
-                })}
-              </p>
-            </article>
-          ))}
+                {item.order_id && (
+                  <p className="mt-4 text-sm text-[#7A6B6D]">
+                    Order ID:{" "}
+                    <span className="font-medium text-[#302324]">
+                      {item.order_id}
+                    </span>
+                  </p>
+                )}
+
+                <p className="mt-5 border-t border-[#E7DDDD] pt-4 text-xs text-[#7A6B6D]">
+                  Received{" "}
+                  {new Date(item.created_at).toLocaleString("en-IN", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                    timeZone: "Asia/Kolkata",
+                  })}
+                </p>
+              </article>
+            );
+          })}
         </div>
       )}
     </main>
