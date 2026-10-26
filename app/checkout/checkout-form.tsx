@@ -15,6 +15,7 @@ type CheckoutProfile = {
 
 type CheckoutFormProps = {
   initialProfile: CheckoutProfile | null;
+  initialEmail: string;
 };
 
 type SummaryItem = {
@@ -53,6 +54,7 @@ const labelClasses = "text-sm font-bold text-[#302324]";
 
 export default function CheckoutForm({
   initialProfile,
+  initialEmail,
 }: CheckoutFormProps) {
   const router = useRouter();
   const { cart } = useCart();
@@ -68,6 +70,7 @@ export default function CheckoutForm({
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const [email, setEmail] = useState(initialEmail);
 
   useEffect(() => {
     let active = true;
@@ -174,6 +177,7 @@ export default function CheckoutForm({
         phone: phone.trim(),
         address: deliveryAddress,
         pincode: pincode.trim(),
+        email: email.trim(),
       })
     );
 
@@ -217,6 +221,28 @@ export default function CheckoutForm({
               className={inputClasses}
               placeholder="Enter your full name"
             />
+          </div>
+
+          <div>
+            <label htmlFor="email" className={labelClasses}>
+              Email address
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              maxLength={254}
+              className={inputClasses}
+              placeholder="Enter your email address"
+            />
+
+            <p className="mt-2 text-sm font-medium leading-5 text-[#625456]">
+              We'll send your order confirmation and delivery updates here.
+            </p>
           </div>
 
           <div>

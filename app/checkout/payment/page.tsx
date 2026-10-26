@@ -10,6 +10,7 @@ import { useCart } from "@/context/CartContext";
 
 interface CheckoutDetails {
   customerName: string;
+  email: string;
   phone: string;
   address: string;
 }
@@ -191,6 +192,7 @@ export default function PaymentPage() {
           customerName: details.customerName,
           phone: details.phone,
           address: details.address,
+          email: details.email,
           paymentUtr: paymentUtr.trim(),
           expectedTotal: summary.total,
           expectedSubtotal: summary.subtotal,

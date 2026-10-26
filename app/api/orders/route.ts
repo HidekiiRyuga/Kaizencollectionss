@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { Resend } from "resend";
 
 const MAX_REQUEST_BODY_BYTES = 16 * 1024;
 
@@ -85,6 +86,7 @@ export async function POST(request: Request) {
       customerName,
       phone,
       address,
+      email,
       items,
       paymentUtr,
       expectedTotal,
@@ -139,6 +141,25 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         { error: "One or more fields are invalid or too long." },
+        { status: 400 }
+      );
+    }
+
+    if (typeof email !== "string") {
+      return NextResponse.json(
+        { error: "A valid email address is required." },
+        { status: 400 }
+      );
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (
+      trimmedEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)
+    ) {
+      return NextResponse.json(
+        { error: "Please enter a valid email address." },
         { status: 400 }
       );
     }
@@ -249,17 +270,33 @@ export async function POST(request: Request) {
     }
 
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-    const { data: orderId, error } = await supabase.rpc("create_order", {
+  if (authError) {
+    console.error("Order authentication check failed:", authError);
+
+    return NextResponse.json(
+      { error: "Could not verify your session. Please try again." },
+      { status: 401 }
+    );
+  }
+
+  const customerEmail = user?.email?.trim().toLowerCase() || trimmedEmail;
+
+  const { data: orderId, error } = await supabase.rpc(
+    "create_order_with_email",
+    {
       p_customer_name: trimmedCustomerName,
       p_phone: trimmedPhone,
       p_address: trimmedAddress,
       p_items: cleanedItems,
       p_user_id: user?.id ?? null,
       p_payment_utr: trimmedPaymentUtr,
-    });
+      p_customer_email: customerEmail,
+    }
+  );
 
     if (error) {
       console.error("Order creation failed:", error);
@@ -334,6 +371,62 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    if (!orderId) {
+      console.error("Order creation returned no order ID.");
+
+      return NextResponse.json(
+        { error: "Failed to create order." },
+        { status: 500 }
+      );
+    }
+
+    const resendApiKey = process.env.RESEND_API_KEY;
+
+    if (resendApiKey) {
+      try {
+        const resend = new Resend(resendApiKey);
+
+        const safeName = trimmedCustomerName
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+
+        const { error: emailError } = await resend.emails.send({
+          from: "KaizenCollectionss <onboarding@resend.dev>",
+          to: [customerEmail],
+          subject: `We received your order! #${orderId}`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#302324;line-height:1.6">
+              <h1>Thank you for your order! 🌸</h1>
+              <p>Hi ${safeName},</p>
+              <p>We've received your order at KaizenCollectionss.</p>
+              <p><strong>Order ID:</strong> ${orderId}</p>
+              <p><strong>Order total:</strong> ₹${currentTotal}</p>
+              <p><strong>Payment status:</strong> Pending verification</p>
+              <p>We'll notify you when your payment has been verified and your order is confirmed.</p>
+              <p>Thank you for shopping with us! 💗</p>
+              <p>— KaizenCollectionss</p>
+            </div>
+          `,
+        });
+
+        if (emailError) {
+          console.error(
+            "Order email failed:",
+            emailError.name,
+            emailError.statusCode
+          );
+        }
+      } catch (emailError) {
+        console.error("Unexpected order email failure:", emailError);
+      }
+    } else {
+      console.error("RESEND_API_KEY is not configured.");
+    }
+
 
     return NextResponse.json(
       {
