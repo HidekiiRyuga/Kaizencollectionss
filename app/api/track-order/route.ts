@@ -1,7 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { isIP } from "node:net";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { trackingRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -182,7 +182,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     const { data, error } = await supabase.rpc(
       "track_order_lookup",
