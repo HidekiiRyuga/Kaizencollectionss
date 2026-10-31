@@ -56,10 +56,11 @@ export async function updateOrderStatus(formData: FormData) {
     throw new Error("You are not authorized to update orders.");
   }
 
+  // Fetch details needed for the customer notification.
   const { data: order, error: fetchError } = await supabase
     .from("orders")
     .select(
-      "status, payment_status, customer_email, customer_name, total, shipping_courier, tracking_number"
+      "customer_email, customer_name, total, shipping_courier, tracking_number"
     )
     .eq("id", orderId)
     .single();
@@ -69,45 +70,21 @@ export async function updateOrderStatus(formData: FormData) {
     throw new Error("Order not found.");
   }
 
-  const allowedTransitions: Record<string, string[]> = {
-    pending: ["confirmed"],
-    confirmed: ["shipped"],
-    shipped: ["delivered"],
-    delivered: [],
-    cancelled: [],
-  };
+  // Perform the status transition through the database function.
+  const { data: updated, error: updateError } =
+    await supabase.rpc("admin_update_order_status", {
+      p_order_id: orderId,
+      p_status: status,
+    });
 
-  if (!allowedTransitions[order.status]?.includes(status)) {
-    throw new Error(
-      `Cannot change order status from ${order.status} to ${status}.`
-    );
-  }
-
-  if (
-    ["confirmed", "shipped", "delivered"].includes(status) &&
-    order.payment_status !== "paid"
-  ) {
-    redirect(
-      "/admin/orders?error=payment_required"
-    );
-  }
-
-
-  const { data: updatedOrder, error: updateError } = await supabase
-    .from("orders")
-    .update({ status })
-    .eq("id", orderId)
-    .eq("status", order.status)
-    .select("id, status")
-    .maybeSingle();
-
-  if (updateError || !updatedOrder) {
+  if (updateError || updated !== true) {
     console.error("Order status update failed:", updateError);
     throw new Error(
       "Failed to update order status. It may have changed already."
     );
   }
 
+  // Send notification after successful database update.
   if (order.customer_email) {
     await sendOrderStatusEmail(status as OrderEmailStatus, {
       orderId,
@@ -396,37 +373,24 @@ export async function updateOrderTracking(formData: FormData) {
     await supabase.rpc("is_admin");
 
   if (adminError || isAdmin !== true) {
-    throw new Error("You are not authorized to update shipment tracking.");
-  }
-
-  const { data: order, error: fetchError } = await supabase
-    .from("orders")
-    .select("id, status")
-    .eq("id", orderId)
-    .maybeSingle();
-
-  if (fetchError || !order) {
-    console.error("Failed to load order for tracking:", fetchError);
-    throw new Error("Order not found.");
-  }
-
-  if (!["shipped", "delivered"].includes(order.status)) {
     throw new Error(
-      "Mark the order as shipped before adding its tracking number."
+      "You are not authorized to update shipment tracking."
     );
   }
 
-  const { error: updateError } = await supabase
-    .from("orders")
-    .update({
-      shipping_courier: normalizedCourier,
-      tracking_number: normalizedTrackingNumber,
-    })
-    .eq("id", orderId);
+  // Update tracking through the database function.
+  const { data: updated, error: updateError } =
+    await supabase.rpc("admin_update_order_tracking", {
+      p_order_id: orderId,
+      p_shipping_courier: normalizedCourier,
+      p_tracking_number: normalizedTrackingNumber,
+    });
 
-  if (updateError) {
+  if (updateError || updated !== true) {
     console.error("Shipment tracking update failed:", updateError);
-    throw new Error("Failed to save tracking details. Please try again.");
+    throw new Error(
+      "Failed to save tracking details. Please try again."
+    );
   }
 
   revalidatePath("/admin/orders");
