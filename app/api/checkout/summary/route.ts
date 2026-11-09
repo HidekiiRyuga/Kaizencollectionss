@@ -9,6 +9,14 @@ type RequestedItem = {
   quantity: number;
 };
 
+type UnavailableItem = {
+  productId: string;
+  name: string;
+  stock: number;
+  requestedQuantity: number;
+  reason: "out_of_stock" | "insufficient_stock" | "product_unavailable";
+};
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -105,25 +113,62 @@ export async function POST(request: Request) {
       );
     }
 
-    if (products.length !== items.length) {
-      return NextResponse.json(
-        {
-          error:
-            "A product in your cart is no longer available.",
-        },
-        { status: 400 }
-      );
-    }
+    const lines: {
+      productId: string;
+      name: string;
+      mrp: number;
+      price: number;
+      quantity: number;
+      originalLineTotal: number;
+      lineTotal: number;
+      productSavings: number;
+      discountPercent: number;
+    }[] = [];
 
-    const lines = items.map((item) => {
+    const unavailableItems: UnavailableItem[] = [];
+
+    for (const item of items) {
       const product = products.find(
         (candidate) => candidate.id === item.productId
       );
 
       if (!product) {
-        throw new Error(
-          "A product in your cart could not be found."
-        );
+        unavailableItems.push({
+          productId: item.productId,
+          name: "Product no longer available",
+          stock: 0,
+          requestedQuantity: item.quantity,
+          reason: "product_unavailable",
+        });
+
+        continue;
+      }
+
+      if (
+        !Number.isSafeInteger(product.stock) ||
+        product.stock <= 0
+      ) {
+        unavailableItems.push({
+          productId: product.id,
+          name: product.name,
+          stock: 0,
+          requestedQuantity: item.quantity,
+          reason: "out_of_stock",
+        });
+
+        continue;
+      }
+
+      if (product.stock < item.quantity) {
+        unavailableItems.push({
+          productId: product.id,
+          name: product.name,
+          stock: product.stock,
+          requestedQuantity: item.quantity,
+          reason: "insufficient_stock",
+        });
+
+        continue;
       }
 
       if (
@@ -146,18 +191,10 @@ export async function POST(request: Request) {
         );
       }
 
-      if (
-        !Number.isSafeInteger(product.stock) ||
-        product.stock < item.quantity
-      ) {
-        throw new Error(
-          `${product.name} does not have enough stock available.`
-        );
-      }
-
       const originalLineTotal = mrp * item.quantity;
       const lineTotal = product.price * item.quantity;
       const productSavings = originalLineTotal - lineTotal;
+
       const discountPercent =
         mrp > 0
           ? Math.round(((mrp - product.price) / mrp) * 100)
@@ -171,7 +208,7 @@ export async function POST(request: Request) {
         throw new Error("The cart total is too large.");
       }
 
-      return {
+      lines.push({
         productId: product.id,
         name: product.name,
         mrp,
@@ -181,8 +218,8 @@ export async function POST(request: Request) {
         lineTotal,
         productSavings,
         discountPercent,
-      };
-    });
+      });
+}
 
     const subtotal = lines.reduce(
       (sum, item) => sum + item.lineTotal,
@@ -196,10 +233,18 @@ export async function POST(request: Request) {
 
     const productSavings = originalSubtotal - subtotal;
     const deliveryFeeListPrice = settings.delivery_fee;
-    const freeDeliveryApplied = settings.free_delivery_enabled;
-    const deliveryFee = freeDeliveryApplied
+
+    const hasAvailableProducts = lines.length > 0;
+
+    const freeDeliveryApplied =
+      hasAvailableProducts && settings.free_delivery_enabled;
+
+    const deliveryFee = !hasAvailableProducts
       ? 0
-      : deliveryFeeListPrice;
+      : freeDeliveryApplied
+        ? 0
+        : deliveryFeeListPrice;
+
     const deliverySavings = freeDeliveryApplied
       ? deliveryFeeListPrice
       : 0;
@@ -211,7 +256,7 @@ export async function POST(request: Request) {
       !Number.isSafeInteger(originalSubtotal) ||
       !Number.isSafeInteger(totalSavings) ||
       !Number.isSafeInteger(total) ||
-      total <= 0 ||
+      total < 0 ||
       total > 2_147_483_647
     ) {
       return NextResponse.json(
@@ -222,6 +267,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       items: lines,
+      unavailableItems,
       originalSubtotal,
       subtotal,
       productSavings,

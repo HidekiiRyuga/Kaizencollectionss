@@ -30,8 +30,20 @@ type SummaryItem = {
   discountPercent: number;
 };
 
+type UnavailableItem = {
+  productId: string;
+  name: string;
+  stock: number;
+  requestedQuantity: number;
+  reason:
+    | "out_of_stock"
+    | "insufficient_stock"
+    | "product_unavailable";
+};
+
 type CheckoutSummary = {
   items: SummaryItem[];
+  unavailableItems: UnavailableItem[];
   originalSubtotal: number;
   subtotal: number;
   productSavings: number;
@@ -163,7 +175,12 @@ export default function CheckoutForm({
   ) => {
     event.preventDefault();
 
-    if (!summary || summaryLoading || summaryError) {
+    if (
+      !summary ||
+      summaryLoading ||
+      summaryError ||
+      summary.items.length === 0
+    ) {
       return;
     }
 
@@ -313,14 +330,21 @@ export default function CheckoutForm({
           <div className="pt-2">
             <button
               type="submit"
-              disabled={!summary || summaryLoading || !!summaryError}
+              disabled={
+                !summary ||
+                summaryLoading ||
+                !!summaryError ||
+                summary.items.length === 0
+              }
               className="w-full rounded-full bg-[#302324] px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-[#211819] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#302324] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {summaryLoading
                 ? "Calculating order..."
                 : summaryError
                   ? "Order summary unavailable"
-                  : "Proceed to Pay"}
+                  : summary && summary.items.length === 0
+                    ? "No Available Products"
+                    : "Proceed to Pay"}
             </button>
 
             <p className="mt-3 text-center text-sm font-medium text-[#625456]">
@@ -401,9 +425,42 @@ export default function CheckoutForm({
                     )}
                   </div>
                 ))}
+              
               </div>
 
+              {summary.unavailableItems.length > 0 && (
+                <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4">
+                  <h3 className="text-sm font-bold text-red-900">
+                    Unavailable Products
+                  </h3>
+
+                  <div className="mt-3 space-y-3">
+                    {summary.unavailableItems.map((item) => (
+                      <div key={item.productId}>
+                        <p className="text-sm font-semibold text-red-900">
+                          {item.name}
+                        </p>
+
+                        <p className="mt-1 text-xs leading-5 text-red-800">
+                          {item.reason === "out_of_stock"
+                            ? "Currently out of stock"
+                            : item.reason === "insufficient_stock"
+                              ? `Only ${item.stock} available, but you requested ${item.requestedQuantity}`
+                              : "This product is currently unavailable"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="mt-3 text-xs leading-5 text-red-800">
+                    These products are excluded from your order total.
+                    You can remove them from your cart.
+                  </p>
+                </div>
+              )}
+
               <div className="my-6 h-px bg-[#302324]/20" />
+
 
               <div className="space-y-4 text-sm">
                 <div className="flex justify-between gap-3">

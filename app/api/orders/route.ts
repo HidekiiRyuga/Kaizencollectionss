@@ -249,9 +249,12 @@ export async function POST(request: Request) {
       return sum + product.price * item.quantity;
     }, 0);
 
-    const currentDeliveryFee = deliverySettings.free_delivery_enabled
-      ? 0
-      : deliverySettings.delivery_fee;
+    const currentDeliveryFee =
+      cleanedItems.length === 0
+        ? 0
+        : deliverySettings.free_delivery_enabled
+          ? 0
+          : deliverySettings.delivery_fee;
 
     const currentTotal = currentSubtotal + currentDeliveryFee;
 

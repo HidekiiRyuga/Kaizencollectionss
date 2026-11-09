@@ -21,8 +21,20 @@ interface SummaryItem {
   discountPercent: number;
 }
 
+interface UnavailableItem {
+  productId: string;
+  name: string;
+  stock: number;
+  requestedQuantity: number;
+  reason:
+    | "out_of_stock"
+    | "insufficient_stock"
+    | "product_unavailable";
+}
+
 interface CartSummary {
   items: SummaryItem[];
+  unavailableItems: UnavailableItem[];
   originalSubtotal: number;
   subtotal: number;
   productSavings: number;
@@ -40,6 +52,7 @@ const formatPrice = (amount: number) =>
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity } = useCart();
+  
 
   const [summary, setSummary] = useState<CartSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
@@ -120,6 +133,22 @@ export default function CartPage() {
   useEffect(() => {
     void Promise.resolve().then(() => loadSummary());
   }, [loadSummary]);
+  const availableCartItems = summary
+    ? cart.filter((item) =>
+        summary.items.some(
+          (summaryItem) => summaryItem.productId === item.id
+        )
+      )
+    : cart;
+
+  const unavailableCartItems = summary
+    ? cart.filter((item) =>
+        summary.unavailableItems.some(
+          (unavailableItem) =>
+            unavailableItem.productId === item.id
+        )
+      )
+    : [];
 
   if (cart.length === 0) {
     return (
@@ -164,7 +193,7 @@ export default function CartPage() {
         <div className="mt-12 grid gap-14 lg:grid-cols-[1fr_380px] xl:gap-20">
           <div>
             <div className="space-y-8">
-              {cart.map((item) => {
+              {availableCartItems.map((item) => {
                 const currentItem = summary?.items.find(
                   (summaryItem) => summaryItem.productId === item.id
                 );
@@ -275,7 +304,76 @@ export default function CartPage() {
                   </div>
                 );
               })}
+            
             </div>
+
+            {summary && unavailableCartItems.length > 0 && (
+              <div className="mt-10 border-t border-[#D9CACA] pt-8">
+                <h2 className="text-xl font-bold text-[#302324]">
+                  Unavailable Products
+                </h2>
+
+                <p className="mt-2 text-sm text-[#625456]">
+                  These items are currently unavailable or have insufficient
+                  stock. You can remove them from your cart.
+                </p>
+
+                <div className="mt-6 space-y-6">
+                  {unavailableCartItems.map((item) => {
+                    const unavailableItem =
+                      summary.unavailableItems.find(
+                        (entry) => entry.productId === item.id
+                      );
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex gap-5 border-b border-[#D9CACA] pb-6 sm:gap-7"
+                      >
+                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-[#E7DDDD] sm:h-28 sm:w-28">
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            className="object-cover opacity-60"
+                          />
+                        </div>
+
+                        <div className="flex min-w-0 flex-1 justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="text-base font-bold text-[#302324]">
+                              {item.name}
+                            </h3>
+
+                            <p className="mt-2 text-sm font-semibold text-red-700">
+                              {unavailableItem?.reason === "out_of_stock"
+                                ? "Out of stock"
+                                : unavailableItem?.reason ===
+                                    "insufficient_stock"
+                                  ? `Only ${unavailableItem.stock} available — you requested ${unavailableItem.requestedQuantity}`
+                                  : "Product unavailable"}
+                            </p>
+
+                            <p className="mt-1 text-sm text-[#625456]">
+                              This item won't be included in checkout.
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => removeFromCart(item.id)}
+                            className="shrink-0 text-[#625456] transition-colors hover:text-[#302324]"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <Trash2 size={19} strokeWidth={2} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <Link
               href="/shop"
@@ -350,17 +448,29 @@ export default function CartPage() {
               </>
             )}
 
+            
             <Link
               href="/checkout"
-              aria-disabled={summaryLoading || !summary || !!summaryError}
+              aria-disabled={
+                summaryLoading ||
+                !summary ||
+                !!summaryError ||
+                summary.items.length === 0
+              }
               className={`mt-7 block w-full rounded-full bg-[#302324] px-6 py-4 text-center text-sm font-bold text-white transition-colors hover:bg-[#211819] ${
-                summaryLoading || !summary || !!summaryError
+                summaryLoading ||
+                !summary ||
+                !!summaryError ||
+                summary.items.length === 0
                   ? "pointer-events-none opacity-60"
                   : ""
               }`}
             >
-              Proceed to Checkout
+              {summary && summary.items.length === 0
+                ? "No Available Products"
+                : "Proceed to Checkout"}
             </Link>
+
           </aside>
         </div>
       </main>
