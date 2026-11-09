@@ -14,7 +14,12 @@ export default async function SuggestedProducts() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Failed to load featured products:", error);
+    console.error("Failed to load featured products:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
   }
 
   const featuredProducts = products ?? [];

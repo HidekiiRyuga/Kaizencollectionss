@@ -27,8 +27,21 @@ interface SummaryItem {
   discountPercent: number;
 }
 
+interface UnavailableItem {
+  productId: string;
+  name: string;
+  stock: number;
+  requestedQuantity: number;
+  reason:
+    | "out_of_stock"
+    | "insufficient_stock"
+    | "product_unavailable";
+}
+
+
 interface CheckoutSummary {
   items: SummaryItem[];
+  unavailableItems: UnavailableItem[];
   originalSubtotal: number;
   subtotal: number;
   productSavings: number;
@@ -49,7 +62,7 @@ const inputClasses =
 
 export default function PaymentPage() {
   const router = useRouter();
-  const { cart, clearCart } = useCart();
+  const { cart, removeFromCart } = useCart();
 
   const [details, setDetails] = useState<CheckoutDetails | null>(null);
   const [detailsChecked, setDetailsChecked] = useState(false);
@@ -197,8 +210,17 @@ export default function PaymentPage() {
     event.preventDefault();
     setError("");
 
-    if (!summary || summaryLoading || summaryError) {
-      setError("Please load your current order summary before continuing.");
+    if (
+      !summary ||
+      summaryLoading ||
+      summaryError ||
+      summary.items.length === 0
+    ) {
+      setError(
+        summary && summary.items.length === 0
+          ? "There are no available products to order. Please return to your cart."
+          : "Please load your current order summary before continuing."
+      );
       return;
     }
 
@@ -224,10 +246,10 @@ export default function PaymentPage() {
           expectedTotal: summary.total,
           expectedSubtotal: summary.subtotal,
           expectedDeliveryFee: summary.deliveryFee,
-          items: cart.map((item) => ({
-            productId: item.id,
-            quantity: item.quantity,
-          })),
+          items: summary.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
         }),
       });
 
@@ -238,7 +260,11 @@ export default function PaymentPage() {
       }
 
       sessionStorage.removeItem("kaizen-checkout-details");
-      clearCart();
+
+      summary.items.forEach((item) => {
+        removeFromCart(item.productId);
+      });
+
       router.push(`/order-success?id=${data.orderId}`);
     } catch (error) {
       setError(
@@ -386,7 +412,8 @@ export default function PaymentPage() {
               isSubmitting ||
               summaryLoading ||
               !summary ||
-              !!summaryError
+              !!summaryError ||
+              summary.items.length === 0
             }
             className="mt-7 w-full rounded-full bg-[#302324] px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-[#211819] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#302324] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -464,6 +491,40 @@ export default function PaymentPage() {
                   </div>
                 ))}
               </div>
+
+              {summary.unavailableItems.length > 0 && (
+                <div className="mt-6 rounded-2xl border border-[#E0D3D3] bg-white/70 p-4">
+                  <h3 className="text-sm font-bold text-[#302324]">
+                    Unavailable Products
+                  </h3>
+
+                  <p className="mt-1 text-xs font-medium leading-5 text-[#625456]">
+                    These products are excluded from your payment total.
+                    You can remove them from your cart.
+                  </p>
+
+                  <div className="mt-3 space-y-3">
+                    {summary.unavailableItems.map((item) => (
+                      <div
+                        key={item.productId}
+                        className="border-t border-[#E0D3D3] pt-3"
+                      >
+                        <p className="text-sm font-bold text-[#302324]">
+                          {item.name}
+                        </p>
+
+                        <p className="mt-1 text-xs font-medium leading-5 text-[#625456]">
+                          {item.reason === "out_of_stock"
+                            ? "Currently out of stock"
+                            : item.reason === "insufficient_stock"
+                              ? `Only ${item.stock} available, but ${item.requestedQuantity} requested`
+                              : "This product is currently unavailable"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="my-6 h-px bg-[#302324]/20" />
 

@@ -112,11 +112,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
           return item;
         }
 
-        const maxQuantity = item.stock;
+        // Preserve the cart quantity if stock becomes unavailable.
+        if (item.stock <= 0) {
+          return item;
+        }
 
         return {
           ...item,
-          quantity: Math.min(quantity, maxQuantity),
+          quantity: Math.min(quantity, item.stock),
         };
       })
     );
