@@ -11,6 +11,7 @@ export default async function SuggestedProducts() {
     .from("products")
     .select("id, name, price, mrp, image, stock")
     .eq("featured", true)
+    .eq("is_active", true)
     .order("created_at", { ascending: false });
 
   if (error) {

@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     ] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, price, mrp, stock")
+        .select("id, name, price, mrp, stock, is_active")
         .in("id", productIds),
       supabase
         .from("delivery_settings")
@@ -132,11 +132,11 @@ export async function POST(request: Request) {
         (candidate) => candidate.id === item.productId
       );
 
-      if (!product) {
+      if (!product || !product.is_active) {
         unavailableItems.push({
           productId: item.productId,
-          name: "Product no longer available",
-          stock: 0,
+          name: product?.name ?? "Product no longer available",
+          stock: product?.stock ?? 0,
           requestedQuantity: item.quantity,
           reason: "product_unavailable",
         });
