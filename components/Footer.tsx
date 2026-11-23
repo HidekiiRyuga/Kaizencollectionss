@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { Mail } from "lucide-react";
 
@@ -5,7 +6,7 @@ export default function Footer() {
   return (
     <footer className="w-full bg-[#302324] text-white">
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5 lg:gap-6">
           {/* Brand */}
           <div>
             <Link
@@ -53,7 +54,6 @@ export default function Footer() {
               >
                 About
               </Link>
-
             </div>
           </div>
 
@@ -67,6 +67,34 @@ export default function Footer() {
                 className="text-sm text-white/65 transition-colors hover:text-white"
               >
                 Returns &amp; Refunds
+              </Link>
+
+              <Link
+                href="/privacy-policy"
+                className="text-sm text-white/65 transition-colors hover:text-white"
+              >
+                Privacy Policy
+              </Link>
+
+              <Link
+                href="/shipping-policy"
+                className="text-sm text-white/65 transition-colors hover:text-white"
+              >
+                Shipping Policy
+              </Link>
+            </div>
+          </div>
+
+          {/* More Info */}
+          <div>
+            <h3 className="text-sm font-semibold">More Info</h3>
+
+            <div className="mt-3 flex flex-col gap-3">
+              <Link
+                href="/terms-and-conditions"
+                className="text-sm text-white/65 transition-colors hover:text-white"
+              >
+                Terms &amp; Conditions
               </Link>
             </div>
           </div>
