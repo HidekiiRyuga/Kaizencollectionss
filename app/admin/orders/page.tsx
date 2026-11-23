@@ -128,8 +128,6 @@ export default async function AdminOrdersPage({
           View and manage customer orders.
         </p>
 
-        <ClearAllTestOrders />
-
         {pageError === "payment_required" && (
           <div
             role="alert"
