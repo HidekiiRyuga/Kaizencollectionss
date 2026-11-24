@@ -202,7 +202,8 @@ export async function POST(request: Request) {
     ] = await Promise.all([
       supabase
         .from("products")
-        .select("id, price")
+        .select("id, price, is_active")
+        .eq("is_active", true)
         .in("id", productIds),
 
       supabase
@@ -331,12 +332,15 @@ export async function POST(request: Request) {
       if (
         error.message.includes(
           "One or more products do not exist"
+        ) ||
+        error.message.includes(
+          "One or more products are unavailable"
         )
       ) {
         return NextResponse.json(
           {
             error:
-              "One or more products in your cart are no longer available.",
+              "One or more products in your cart are no longer available. Please refresh your cart.",
           },
           { status: 409 }
         );

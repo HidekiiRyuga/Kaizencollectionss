@@ -21,6 +21,7 @@ export default async function ShopPage({
   let query = supabase
     .from("products")
     .select("*")
+    .eq("is_active", true)
     .order("created_at", { ascending: false });
 
   if (q?.trim()) {
