@@ -37,6 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <NavigationLoadingOverlay />
           {children}
         </CartProvider>
+        <Analytics />
       </body>
     </html>
   );
