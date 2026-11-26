@@ -102,9 +102,9 @@ export default async function ProductPage({
 
             <div className="my-8 h-px bg-[#E7DDDD]" />
 
-            <p className="max-w-xl text-base leading-8 text-[#7A6B6D] sm:text-lg">
+            <div className="max-w-xl whitespace-pre-line text-base leading-8 text-[#7A6B6D] sm:text-lg">
               {product.description}
-            </p>
+            </div>
 
             <div className="mt-10 max-w-md">
               <AddToCartButton product={product} />
